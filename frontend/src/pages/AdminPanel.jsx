@@ -94,7 +94,7 @@ function PhotosTab() {
       </TwoCol>
       <label className="upload-zone">
         <input type="file" accept="image/*" multiple onChange={upload} />
-        <div className="upload-icon">up</div>
+        <div className="upload-icon">↑</div>
         <p>{busy ? 'Uploading...' : 'Click or drag photos here'}</p>
         <p style={{ marginTop:'0.4rem', opacity:0.6 }}>JPG PNG WEBP up to 15MB each</p>
       </label>
@@ -273,17 +273,31 @@ function SettingsTab() {
   const toast = useToast();
   const [form, setForm] = useState({ heroTagline:'', aboutText:'', contactEmail:'', whatsapp:'' });
   const [aboutPhoto, setAboutPhoto] = useState('');
-  const [uploading, setUploading] = useState(false);
-  useEffect(() => { api.get('/settings').then(r => { setForm(f => ({...f,...r.data})); if(r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto); }).catch(() => {}); }, []);
+  const [heroMedia, setHeroMedia] = useState('');
+  const [heroMediaType, setHeroMediaType] = useState('');
+  const [uploadingAbout, setUploadingAbout] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
+
+  useEffect(() => {
+    api.get('/settings').then(r => {
+      setForm(f => ({...f,...r.data}));
+      if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
+      if (r.data.heroMedia) setHeroMedia(r.data.heroMedia);
+      if (r.data.heroMediaType) setHeroMediaType(r.data.heroMediaType);
+    }).catch(() => {});
+  }, []);
+
   const handle = e => setForm(f => ({...f, [e.target.name]: e.target.value}));
+
   const save = async () => {
     try { await api.post('/settings', form); toast('Settings saved!'); }
     catch { toast('Error saving'); }
   };
-  const uploadPhoto = async e => {
+
+  const uploadAboutPhoto = async e => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploading(true);
+    setUploadingAbout(true);
     const fd = new FormData();
     fd.append('photo', file);
     try {
@@ -291,11 +305,67 @@ function SettingsTab() {
       setAboutPhoto(data.url);
       toast('About photo updated!');
     } catch { toast('Upload failed'); }
-    finally { setUploading(false); e.target.value = ''; }
+    finally { setUploadingAbout(false); e.target.value = ''; }
   };
+
+  const uploadHeroMedia = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith('video/');
+    if (isVideo) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = async () => {
+        window.URL.revokeObjectURL(video.src);
+        if (video.duration < 30) {
+          toast('Video must be at least 30 seconds long!');
+          e.target.value = '';
+          return;
+        }
+        await doHeroUpload(file, e);
+      };
+      video.src = URL.createObjectURL(file);
+    } else {
+      await doHeroUpload(file, e);
+    }
+  };
+
+  const doHeroUpload = async (file, e) => {
+    setUploadingHero(true);
+    const fd = new FormData();
+    fd.append('media', file);
+    try {
+      const { data } = await api.post('/settings/hero-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setHeroMedia(data.url);
+      setHeroMediaType(data.type);
+      toast('Hero media updated!');
+    } catch { toast('Upload failed'); }
+    finally { setUploadingHero(false); e.target.value = ''; }
+  };
+
   return (
     <>
       <h2 className="admin-section-title">Site Settings</h2>
+
+      <div style={{ marginBottom:'2rem', paddingBottom:'2rem', borderBottom:'1px solid #111' }}>
+        <p className="a-label" style={{ marginBottom:'0.5rem' }}>Hero Background (Photo or Video)</p>
+        <p style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.3)', marginBottom:'1rem', fontWeight:300 }}>Fills the full screen behind BYDASAM. Video must be minimum 30 seconds. Plays silently and loops automatically.</p>
+        {heroMedia && (
+          <div style={{ marginBottom:'1rem' }}>
+            {heroMediaType === 'video' ? (
+              <video src={heroMedia} style={{ width:'100%', maxWidth:'400px', height:'200px', objectFit:'cover', opacity:0.8 }} muted controls />
+            ) : (
+              <img src={heroMedia} alt="Hero" style={{ width:'100%', maxWidth:'400px', height:'200px', objectFit:'cover', opacity:0.8 }} />
+            )}
+          </div>
+        )}
+        <label className="upload-zone" style={{ maxWidth:'400px' }}>
+          <input type="file" accept="image/*,video/*" onChange={uploadHeroMedia} />
+          <div className="upload-icon">↑</div>
+          <p>{uploadingHero ? 'Uploading... this may take a while for videos' : heroMedia ? 'Click to change hero media' : 'Upload photo or video'}</p>
+          <p style={{ marginTop:'0.3rem', opacity:0.5 }}>Photo: JPG PNG WEBP · Video: MP4 MOV (min 30 sec)</p>
+        </label>
+      </div>
 
       <div style={{ marginBottom:'2rem', paddingBottom:'2rem', borderBottom:'1px solid #111' }}>
         <p className="a-label" style={{ marginBottom:'1rem' }}>About Section Photo</p>
@@ -303,9 +373,9 @@ function SettingsTab() {
           <img src={aboutPhoto} alt="About" style={{ width:'150px', height:'200px', objectFit:'cover', marginBottom:'1rem', opacity:0.8 }} />
         )}
         <label className="upload-zone" style={{ maxWidth:'400px' }}>
-          <input type="file" accept="image/*" onChange={uploadPhoto} />
+          <input type="file" accept="image/*" onChange={uploadAboutPhoto} />
           <div className="upload-icon">↑</div>
-          <p>{uploading ? 'Uploading...' : aboutPhoto ? 'Click to change photo' : 'Upload your photo'}</p>
+          <p>{uploadingAbout ? 'Uploading...' : aboutPhoto ? 'Click to change photo' : 'Upload your photo'}</p>
           <p style={{ marginTop:'0.3rem', opacity:0.5 }}>This appears next to your bio on the website</p>
         </label>
       </div>
