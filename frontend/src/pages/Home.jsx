@@ -214,13 +214,24 @@ function Booking() {
 }
 
 function About() {
+  const [aboutPhoto, setAboutPhoto] = useState('');
+  useEffect(() => {
+    api.get('/settings').then(r => {
+      if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
+    }).catch(() => {});
+  }, []);
+
   return (
     <section id="about" style={{ borderTop: '1px solid #111' }}>
       <div className="about-grid">
-        <div className="about-visual">
-          <div className="about-visual-inner">
-            <span className="about-visual-name">BYDASAM</span>
-          </div>
+        <div className="about-visual" style={{ position:'relative', overflow:'hidden' }}>
+          {aboutPhoto ? (
+            <img src={aboutPhoto} alt="Madhu Sai Pavan Dasam" style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} />
+          ) : (
+            <div className="about-visual-inner">
+              <span className="about-visual-name">BYDASAM</span>
+            </div>
+          )}
         </div>
         <div className="about-text">
           <p className="about-role">Photographer · Storyteller · Visual Architect</p>

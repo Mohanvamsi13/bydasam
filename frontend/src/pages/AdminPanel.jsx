@@ -272,15 +272,44 @@ function SocialTab() {
 function SettingsTab() {
   const toast = useToast();
   const [form, setForm] = useState({ heroTagline:'', aboutText:'', contactEmail:'', whatsapp:'' });
-  useEffect(() => { api.get('/settings').then(r => setForm(f => ({...f,...r.data}))).catch(() => {}); }, []);
+  const [aboutPhoto, setAboutPhoto] = useState('');
+  const [uploading, setUploading] = useState(false);
+  useEffect(() => { api.get('/settings').then(r => { setForm(f => ({...f,...r.data})); if(r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto); }).catch(() => {}); }, []);
   const handle = e => setForm(f => ({...f, [e.target.name]: e.target.value}));
   const save = async () => {
     try { await api.post('/settings', form); toast('Settings saved!'); }
     catch { toast('Error saving'); }
   };
+  const uploadPhoto = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('photo', file);
+    try {
+      const { data } = await api.post('/settings/about-photo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAboutPhoto(data.url);
+      toast('About photo updated!');
+    } catch { toast('Upload failed'); }
+    finally { setUploading(false); e.target.value = ''; }
+  };
   return (
     <>
       <h2 className="admin-section-title">Site Settings</h2>
+
+      <div style={{ marginBottom:'2rem', paddingBottom:'2rem', borderBottom:'1px solid #111' }}>
+        <p className="a-label" style={{ marginBottom:'1rem' }}>About Section Photo</p>
+        {aboutPhoto && (
+          <img src={aboutPhoto} alt="About" style={{ width:'150px', height:'200px', objectFit:'cover', marginBottom:'1rem', opacity:0.8 }} />
+        )}
+        <label className="upload-zone" style={{ maxWidth:'400px' }}>
+          <input type="file" accept="image/*" onChange={uploadPhoto} />
+          <div className="upload-icon">↑</div>
+          <p>{uploading ? 'Uploading...' : aboutPhoto ? 'Click to change photo' : 'Upload your photo'}</p>
+          <p style={{ marginTop:'0.3rem', opacity:0.5 }}>This appears next to your bio on the website</p>
+        </label>
+      </div>
+
       <Row label="Hero Tagline"><input name="heroTagline" className="a-input" value={form.heroTagline || ''} onChange={handle} placeholder="Street Wedding Speed and Steel Abstract Portrait" /></Row>
       <Row label="About Text"><textarea name="aboutText" className="a-textarea" value={form.aboutText || ''} onChange={handle} placeholder="A short bio..." style={{ height:'100px' }} /></Row>
       <TwoCol>
@@ -296,8 +325,8 @@ function SecurityTab() {
   const toast = useToast();
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
-  const [code, setCode]     = useState('');
-  const [mfaOn, setMfaOn]   = useState(false);
+  const [code, setCode] = useState('');
+  const [mfaOn, setMfaOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const setupMfa = async () => {
     setLoading(true);
