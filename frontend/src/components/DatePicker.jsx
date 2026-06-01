@@ -22,9 +22,10 @@ export default function DatePicker({ value, onChange }) {
   const selectDay = d => {
     const m = String(month+1).padStart(2,'0');
     const day = String(d).padStart(2,'0');
-    const val = `${year}-${m}-${day}`;
-    onChange(val);
-    setTyped(`${MONTHS[month]} ${d}, ${year}`);
+    const display = `${m}/${day}/${year}`;
+    const stored = `${year}-${m}-${day}`;
+    setTyped(display);
+    onChange(stored);
     setOpen(false);
     setView('days');
   };
@@ -63,7 +64,7 @@ export default function DatePicker({ value, onChange }) {
           value={typed}
           onChange={handleTyped}
           onFocus={() => { setOpen(true); setView('days'); }}
-          placeholder="e.g. June 15, 2026"
+          placeholder="MM/DD/YYYY"
           style={{
             flex:1, background:'transparent', border:'none',
             color:'#fff', fontFamily:"'Barlow',sans-serif",
@@ -82,7 +83,7 @@ export default function DatePicker({ value, onChange }) {
         </button>
       </div>
       <p style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.15em', marginTop:'0.3rem' }}>
-        Type a date or click the calendar icon to pick
+        Type MM/DD/YYYY or click calendar icon to pick
       </p>
 
       {open && (
@@ -178,7 +179,7 @@ export default function DatePicker({ value, onChange }) {
             </>
           )}
 
-          <button type="button" onClick={() => setShowCal(false)} style={{ marginTop:'0.8rem', width:'100%', background:'none', border:'1px solid #333', color:'rgba(255,255,255,0.4)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', padding:'0.5rem', cursor:'pointer' }} onClick={() => setOpen(false)}>Close</button>
+          <button type="button" onClick={() => setOpen(false)} style={{ marginTop:'0.8rem', width:'100%', background:'none', border:'1px solid #333', color:'rgba(255,255,255,0.4)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', padding:'0.5rem', cursor:'pointer' }}>Close</button>
         </div>
       )}
     </div>
