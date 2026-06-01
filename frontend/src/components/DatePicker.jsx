@@ -19,18 +19,12 @@ export default function DatePicker({ value, onChange }) {
 
   useEffect(() => { setTyped(value || ''); }, [value]);
 
-  const formatDisplay = v => {
-    if (!v) return '';
-    const [y, m, d] = v.split('-');
-    if (!y || !m || !d) return v;
-    return `${MONTHS[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
-  };
-
   const selectDay = d => {
     const m = String(month+1).padStart(2,'0');
     const day = String(d).padStart(2,'0');
     const val = `${year}-${m}-${day}`;
     onChange(val);
+    setTyped(`${MONTHS[month]} ${d}, ${year}`);
     setOpen(false);
     setView('days');
   };
@@ -63,13 +57,13 @@ export default function DatePicker({ value, onChange }) {
 
   return (
     <div ref={ref} style={{ position:'relative' }}>
-      <div style={{ display:'flex', alignItems:'center', borderBottom:'1px solid #1c1c1c', transition:'border-color 0.3s' }}>
+      <div style={{ display:'flex', alignItems:'center', borderBottom:'1px solid #1c1c1c' }}>
         <input
           type="text"
           value={typed}
           onChange={handleTyped}
           onFocus={() => { setOpen(true); setView('days'); }}
-          placeholder="Type date or use calendar"
+          placeholder="e.g. June 15, 2026"
           style={{
             flex:1, background:'transparent', border:'none',
             color:'#fff', fontFamily:"'Barlow',sans-serif",
@@ -78,7 +72,7 @@ export default function DatePicker({ value, onChange }) {
           }}
         />
         <button type="button" onClick={() => { setOpen(o => !o); setView('days'); }}
-          style={{ background:'none', border:'none', cursor:'pointer', padding:'0.4rem', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center' }}>
+          style={{ background:'none', border:'none', cursor:'pointer', padding:'0.4rem', color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
@@ -87,10 +81,12 @@ export default function DatePicker({ value, onChange }) {
           </svg>
         </button>
       </div>
+      <p style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.15em', marginTop:'0.3rem' }}>
+        Type a date or click the calendar icon to pick
+      </p>
 
       {open && (
         <div style={calStyle}>
-
           {view === 'days' && (
             <>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'0.8rem' }}>
@@ -107,7 +103,7 @@ export default function DatePicker({ value, onChange }) {
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px', marginBottom:'0.4rem' }}>
                 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-                  <div key={d} style={{ textAlign:'center', fontSize:'0.62rem', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow Condensed',sans-serif", padding:'0.3rem 0' }}>{d}</div>
+                  <div key={d} style={{ textAlign:'center', fontSize:'0.62rem', color:'rgba(255,255,255,0.4)', fontFamily:"'Barlow Condensed',sans-serif", padding:'0.3rem 0' }}>{d}</div>
                 ))}
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
@@ -127,8 +123,6 @@ export default function DatePicker({ value, onChange }) {
                         borderRadius:'2px', transition:'all 0.15s',
                         fontFamily:"'Barlow',sans-serif", textAlign:'center',
                       }}
-                      onMouseEnter={e => { if(!isPast && !sel) e.target.style.background='rgba(255,255,255,0.1)'; }}
-                      onMouseLeave={e => { if(!sel) e.target.style.background='transparent'; }}
                     >{d}</button>
                   );
                 })}
@@ -154,8 +148,6 @@ export default function DatePicker({ value, onChange }) {
                       fontFamily:"'Barlow Condensed',sans-serif",
                       letterSpacing:'0.08em', transition:'all 0.15s',
                     }}
-                    onMouseEnter={e => { if(month!==i) e.target.style.background='rgba(255,255,255,0.1)'; }}
-                    onMouseLeave={e => { if(month!==i) e.target.style.background='transparent'; }}
                   >{m.slice(0,3)}</button>
                 ))}
               </div>
@@ -180,14 +172,13 @@ export default function DatePicker({ value, onChange }) {
                       fontFamily:"'Barlow Condensed',sans-serif",
                       transition:'all 0.15s',
                     }}
-                    onMouseEnter={e => { if(year!==y) e.target.style.background='rgba(255,255,255,0.1)'; }}
-                    onMouseLeave={e => { if(year!==y) e.target.style.background='transparent'; }}
                   >{y}</button>
                 ))}
               </div>
             </>
           )}
 
+          <button type="button" onClick={() => setShowCal(false)} style={{ marginTop:'0.8rem', width:'100%', background:'none', border:'1px solid #333', color:'rgba(255,255,255,0.4)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', padding:'0.5rem', cursor:'pointer' }} onClick={() => setOpen(false)}>Close</button>
         </div>
       )}
     </div>
