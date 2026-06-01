@@ -4,9 +4,25 @@ import api from '../utils/api';
 import { useToast } from '../hooks/useToast';
 
 function Hero() {
+  const [heroMedia, setHeroMedia] = useState('');
+  const [heroMediaType, setHeroMediaType] = useState('');
+  useEffect(() => {
+    api.get('/settings').then(r => {
+      if (r.data.heroMedia) setHeroMedia(r.data.heroMedia);
+      if (r.data.heroMediaType) setHeroMediaType(r.data.heroMediaType);
+    }).catch(() => {});
+  }, []);
   return (
     <section className="hero">
-      <div className="hero-placeholder" />
+      {heroMedia && heroMediaType === 'video' ? (
+        <video autoPlay muted loop playsInline className="hero-image" style={{ objectFit:'cover' }}>
+          <source src={heroMedia} type="video/mp4" />
+        </video>
+      ) : heroMedia && heroMediaType === 'image' ? (
+        <img src={heroMedia} alt="Hero" className="hero-image" />
+      ) : (
+        <div className="hero-placeholder" />
+      )}
       <div className="hero-overlay" />
       <div className="hero-content">
         <p className="hero-eyebrow">Photography</p>
@@ -150,9 +166,14 @@ function Booking() {
   const toast = useToast();
   const [services, setServices] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [showCal, setShowCal] = useState(false);
   const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',service:'',date:'',message:'' });
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+
   useEffect(() => { api.get('/services').then(r => setServices(r.data)).catch(() => {}); }, []);
   const set = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
   const submit = async e => {
     e.preventDefault();
     if (!form.firstName || !form.email || !form.service) return toast('Fill in name, email and service.');
@@ -164,7 +185,62 @@ function Booking() {
     } catch { toast('Something went wrong. Try again.'); }
     finally { setBusy(false); }
   };
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
+  const selectDate = (day) => {
+    const d = new Date(calYear, calMonth, day);
+    if (d < today) return;
+    const formatted = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    setForm(f => ({ ...f, date: formatted }));
+    setShowCal(false);
+  };
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y-1); }
+    else setCalMonth(m => m-1);
+  };
+
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y+1); }
+    else setCalMonth(m => m+1);
+  };
+
+  const renderCalendar = () => {
+    const days = getDaysInMonth(calYear, calMonth);
+    const firstDay = getFirstDayOfMonth(calYear, calMonth);
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(<div key={`e${i}`} />);
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(calYear, calMonth, d);
+      const isPast = date < today;
+      const isSelected = form.date === `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      cells.push(
+        <button key={d} type="button" onClick={() => selectDate(d)} disabled={isPast}
+          style={{
+            background: isSelected ? '#fff' : 'transparent',
+            color: isPast ? 'rgba(255,255,255,0.15)' : isSelected ? '#000' : 'rgba(255,255,255,0.8)',
+            border: 'none',
+            padding: '0.5rem',
+            fontSize: '0.82rem',
+            cursor: isPast ? 'not-allowed' : 'pointer',
+            borderRadius: '2px',
+            transition: 'all 0.2s',
+            fontFamily: "'Barlow', sans-serif",
+          }}
+        >{d}</button>
+      );
+    }
+    return cells;
+  };
+
   const defaultServices = ['Wedding','Street','Speed and Steel','Abstract','Portrait','Events'];
+
   return (
     <section id="booking" style={{ padding: '5rem 2.5rem', borderTop: '1px solid #111' }}>
       <div style={{ marginBottom: '3rem' }}>
@@ -198,9 +274,41 @@ function Booking() {
               ))}
             </select>
           </div>
-          <div className="form-group">
+          <div className="form-group" style={{ position:'relative' }}>
             <label className="form-label">Preferred Date</label>
-            <input type="date" name="date" value={form.date} onChange={set} className="form-input" />
+            <input
+              type="text"
+              name="date"
+              value={form.date}
+              onChange={set}
+              className="form-input"
+              placeholder="YYYY-MM-DD or pick from calendar"
+              onFocus={() => setShowCal(true)}
+              readOnly
+              style={{ cursor:'pointer' }}
+            />
+            {showCal && (
+              <div style={{
+                position:'absolute', top:'100%', left:0, zIndex:100,
+                background:'#111', border:'1px solid #222', padding:'1rem',
+                width:'280px', marginTop:'4px'
+              }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
+                  <button type="button" onClick={prevMonth} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.6)', fontSize:'1rem', cursor:'pointer', padding:'0.2rem 0.5rem' }}>←</button>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{monthNames[calMonth]} {calYear}</span>
+                  <button type="button" onClick={nextMonth} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.6)', fontSize:'1rem', cursor:'pointer', padding:'0.2rem 0.5rem' }}>→</button>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px', marginBottom:'0.5rem' }}>
+                  {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                    <div key={d} style={{ textAlign:'center', fontSize:'0.65rem', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.05em', padding:'0.3rem 0' }}>{d}</div>
+                  ))}
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
+                  {renderCalendar()}
+                </div>
+                <button type="button" onClick={() => setShowCal(false)} style={{ marginTop:'0.8rem', width:'100%', background:'none', border:'1px solid #333', color:'rgba(255,255,255,0.4)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', padding:'0.5rem', cursor:'pointer' }}>Close</button>
+              </div>
+            )}
           </div>
           <div className="form-group full">
             <label className="form-label">Tell Me About Your Vision</label>
@@ -220,7 +328,6 @@ function About() {
       if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
     }).catch(() => {});
   }, []);
-
   return (
     <section id="about" style={{ borderTop: '1px solid #111' }}>
       <div className="about-grid">
@@ -278,7 +385,6 @@ function Footer() {
     <footer className="footer">
       <span className="footer-brand">BYDASAM</span>
       <span className="footer-copy">2026 clicksbydasam.com All rights reserved</span>
-      <a href="/admin/login" className="footer-copy" style={{ opacity: 0.5 }}>Admin</a>
     </footer>
   );
 }
