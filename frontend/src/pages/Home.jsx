@@ -258,9 +258,6 @@ function About() {
           <p>Based in <strong>Alabama</strong> and available across the entire United States, I specialize in capturing the moments that words simply cannot describe. Weddings that make you cry rewatching them. Streets that feel alive. Cars that look like they are moving standing still. Abstract work that makes you stop and stare.</p>
           <p>My unique combination of artistic training and business acumen means I do not just understand photography — <strong>I understand you, your brand, and what you need.</strong></p>
           <p>I do not just photograph your moments — <strong>I preserve them forever.</strong></p>
-          <p style={{ marginTop: '2rem' }}>
-            <a href="#booking" className="nav-book-btn">Work with me</a>
-          </p>
         </div>
       </div>
     </section>
