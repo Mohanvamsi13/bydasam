@@ -11,7 +11,7 @@ export function useToast() {
     toastEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => toastEl.classList.remove('show'), 10000);
+    hideTimer = setTimeout(() => toastEl.classList.remove('show'), 30000);
   }, []);
   return show;
 }

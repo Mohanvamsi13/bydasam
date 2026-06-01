@@ -29,7 +29,7 @@
 .nav.scrolled { background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); border-bottom: 1px solid #111; }
 .nav-brand { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.12em; color: #fff; }
 .nav-links { display: flex; align-items: center; gap: 2.5rem; list-style: none; }
-.nav-links a { font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.5); transition: color 0.2s; }
+.nav-links a { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.85); transition: color 0.2s; }
 .nav-links a:hover { color: #fff; }
 .nav-right { display: flex; align-items: center; gap: 1rem; }
 .nav-book-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 0.68rem; letter-spacing: 0.22em; text-transform: uppercase; background: #fff; color: #000; border: none; padding: 0.55rem 1.4rem; transition: opacity 0.2s; }
@@ -126,7 +126,7 @@
 .service-card { background: #000; padding: 3rem 2.5rem; transition: background 0.3s; }
 .service-card:hover { background: #080808; }
 .service-card h3 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.04em; margin-bottom: 1rem; }
-.service-card p { font-size: 0.85rem; font-weight: 300; color: rgba(255,255,255,0.38); line-height: 1.85; }
+.service-card p { font-size: 0.85rem; font-weight: 300; color: rgba(255,255,255,0.75); line-height: 1.85; }
 .service-price { font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.22); margin-top: 1.5rem; }
 .service-arrow { font-size: 0.7rem; letter-spacing: 0.2em; color: rgba(255,255,255,0.18); margin-top: 0.5rem; }
 
@@ -135,10 +135,10 @@
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
 .form-group { margin-bottom: 1.8rem; }
 .form-group.full { grid-column: 1/-1; }
-.form-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255,255,255,0.25); display: block; margin-bottom: 0.5rem; }
+.form-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255,255,255,0.7); display: block; margin-bottom: 0.5rem; }
 .form-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #1c1c1c; color: #fff; font-family: 'Barlow', sans-serif; font-size: 0.92rem; font-weight: 300; padding: 0.6rem 0 0.8rem; outline: none; transition: border-color 0.3s; }
 .form-input:focus { border-bottom-color: rgba(255,255,255,0.5); }
-.form-input::placeholder { color: rgba(255,255,255,0.15); }
+.form-input::placeholder { color: rgba(255,255,255,0.4); }
 .form-input option { background: #000; }
 .submit-btn { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.18em; background: #fff; color: #000; border: none; padding: 1rem 3.5rem; transition: opacity 0.25s; margin-top: 1rem; }
 .submit-btn:hover { opacity: 0.85; }
@@ -151,14 +151,14 @@
 .about-visual-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4rem, 10vw, 9rem); letter-spacing: 0.04em; color: rgba(255,255,255,0.04); user-select: none; }
 .about-text { padding: 5rem 4rem; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #111; }
 .about-role { font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 2rem; }
-.about-text p { font-size: 1rem; font-weight: 300; line-height: 1.95; color: rgba(255,255,255,0.5); margin-bottom: 1rem; }
+.about-text p { font-size: 1rem; font-weight: 300; line-height: 1.95; color: rgba(255,255,255,0.8); margin-bottom: 1rem; }
 .about-text p strong { color: rgba(255,255,255,0.85); font-weight: 400; }
 
 /* ── CONTACT ────────────────────────────────── */
 .contact-hero { padding: 5rem 2.5rem; border-bottom: 1px solid #111; }
 .contact-big { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 7rem); letter-spacing: 0.03em; color: rgba(255,255,255,0.08); }
 .social-strip { display: flex; flex-wrap: wrap; border-top: 1px solid #111; }
-.social-link { font-family: 'Barlow Condensed', sans-serif; font-size: 0.68rem; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.28); padding: 1.4rem 2.2rem; border-right: 1px solid #111; transition: color 0.2s; }
+.social-link { font-family: 'Barlow Condensed', sans-serif; font-size: 0.68rem; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.7); padding: 1.4rem 2.2rem; border-right: 1px solid #111; transition: color 0.2s; }
 .social-link:hover { color: #fff; }
 .social-link:last-child { border-right: none; }
 
