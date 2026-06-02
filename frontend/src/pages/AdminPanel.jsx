@@ -53,7 +53,7 @@ export default function AdminPanel() {
               {t.id}
             </button>
           ))}
-          <div style={{ padding:'1.2rem 1.5rem', borderTop:'1px solid #1a1a1a', marginTop:'auto', position:'absolute', bottom:0, width:'100%' }}>
+          <div style={{ padding:'1.2rem 1.5rem', borderTop:'1px solid #1a1a1a', marginTop:'1rem' }}>
             <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.2)', textTransform:'uppercase' }}>Madhu Sai Pavan</p>
             <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.6rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.12)', textTransform:'uppercase', marginTop:'2px' }}>Administrator</p>
           </div>
@@ -90,7 +90,7 @@ function TwoCol({ children }) {
 }
 function SectionHeader({ title, sub }) {
   return (
-    <div>
+    <div style={{ marginBottom:'1.5rem' }}>
       <h2 className="admin-section-title">{title}</h2>
       {sub && <p className="admin-section-sub">{sub}</p>}
     </div>
@@ -147,7 +147,7 @@ function PhotosTab() {
         <Row label="Folder">
           <select className="a-input" value={folder} onChange={e => setFolder(e.target.value)}>
             <option value="">No folder</option>
-            {folders.map(f => <option key={f._id} value={f._id}>{f.parent ? '└ ' : ''}{f.name}</option>)}
+            {folders.map(f => <option key={f._id} value={f._id}>{f.parent ? '↳ ' : ''}{f.name}</option>)}
           </select>
         </Row>
         <Row label="Title (optional)">
@@ -189,74 +189,122 @@ function PhotosTab() {
 function FoldersTab() {
   const toast = useToast();
   const [folders, setFolders] = useState([]);
-  const [name, setName] = useState('');
-  const [parent, setParent] = useState('');
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState('');
 
   const load = () => api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
-  const add = async () => {
-    if (!name.trim()) return toast('Enter a folder name');
+  const getChildren = (parentId) => {
+    if (!parentId) return folders.filter(f => !f.parent);
+    return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
+  };
+
+  const getPhotoCount = (folderId) => {
+    const children = folders.filter(f => String(f.parent?._id || f.parent) === String(folderId));
+    return children.length;
+  };
+
+  const openFolder = (folder) => {
+    setCurrentFolder(folder);
+    setBreadcrumb(prev => [...prev, folder]);
+    setShowNew(false);
+  };
+
+  const goTo = (idx) => {
+    if (idx === -1) {
+      setCurrentFolder(null);
+      setBreadcrumb([]);
+    } else {
+      const target = breadcrumb[idx];
+      setCurrentFolder(target);
+      setBreadcrumb(breadcrumb.slice(0, idx + 1));
+    }
+    setShowNew(false);
+  };
+
+  const create = async () => {
+    if (!newName.trim()) return toast('Enter a folder name');
     try {
-      await api.post('/categories', { name: name.trim(), parent: parent || null });
+      await api.post('/categories', { name: newName.trim(), parent: currentFolder?._id || null });
       toast('Folder created!');
-      setName(''); setParent('');
+      setNewName('');
+      setShowNew(false);
       load();
     } catch(e) { toast(e.response?.data?.error || 'Error'); }
   };
 
-  const del = async id => {
+  const del = async (id, e) => {
+    e.stopPropagation();
     if (!confirm('Delete this folder and all its subfolders?')) return;
     try { await api.delete('/categories/' + id); toast('Deleted'); load(); }
     catch { toast('Error'); }
   };
 
-  const getChildren = (parentId) => folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
-  const getRoots = () => folders.filter(f => !f.parent);
-
-  const renderFolder = (f, depth = 0) => (
-    <div key={f._id}>
-      <div className="folder-item" style={{ marginLeft: depth * 20 + 'px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-          <span style={{ color:'rgba(255,255,255,0.3)', fontSize:'0.8rem' }}>{'└'.repeat(depth > 0 ? 1 : 0)}</span>
-          <span style={{ fontSize:'0.9rem' }}>📁</span>
-          <span className="folder-name">{f.name}</span>
-          {f.parent && <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.2)', textTransform:'uppercase' }}>in {f.parent.name}</span>}
-        </div>
-        <div style={{ display:'flex', gap:'6px' }}>
-          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setParent(f._id)}>+ Subfolder</button>
-          <button className="a-btn a-btn-red a-btn-sm" onClick={() => del(f._id)}>Delete</button>
-        </div>
-      </div>
-      {getChildren(f._id).map(child => renderFolder(child, depth + 1))}
-    </div>
-  );
+  const currentChildren = getChildren(currentFolder?._id);
 
   return (
     <>
-      <SectionHeader title="Folders" sub="Create folders and subfolders to organise your photos" />
-      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
-        <p className="a-label" style={{ marginBottom:'1rem' }}>Create New Folder</p>
-        <TwoCol>
-          <Row label="Folder Name">
-            <input className="a-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Weddings 2026" onKeyDown={e => e.key==='Enter' && add()} />
-          </Row>
-          <Row label="Parent Folder (optional)">
-            <select className="a-input" value={parent} onChange={e => setParent(e.target.value)}>
-              <option value="">Root level</option>
-              {folders.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
-            </select>
-          </Row>
-        </TwoCol>
-        <button className="a-btn" onClick={add}>+ Create Folder</button>
+      <SectionHeader title="Folders" sub="Organise your photos into folders and subfolders" />
+
+      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
+        <span onClick={() => goTo(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: currentFolder ? 'rgba(255,255,255,0.4)' : '#fff', cursor:'pointer' }}>All Folders</span>
+        {breadcrumb.map((b, i) => (
+          <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.7rem' }}>›</span>
+            <span onClick={() => goTo(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i === breadcrumb.length - 1 ? '#fff' : 'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
+          </span>
+        ))}
       </div>
-      {folders.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No folders yet — create your first one above</p>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'10px', marginBottom:'1.5rem' }}>
+        {currentChildren.map(f => (
+          <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer', transition:'border-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor='#333'}
+            onMouseLeave={e => e.currentTarget.style.borderColor='#1a1a1a'}
+          >
+            <div style={{ height:'90px', background:'linear-gradient(135deg,#151515,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📁</div>
+            <div style={{ padding:'10px 12px' }}>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', marginBottom:'3px' }}>{f.name}</p>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getPhotoCount(f._id)} subfolders</p>
+            </div>
+            <div style={{ padding:'0 10px 10px', display:'flex', justifyContent:'flex-end' }}>
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={(e) => del(f._id, e)}>Delete</button>
+            </div>
+          </div>
+        ))}
+
+        <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px', transition:'border-color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor='#444'}
+          onMouseLeave={e => e.currentTarget.style.borderColor='#222'}
+        >
+          <span style={{ fontSize:'1.5rem', color:'rgba(255,255,255,0.15)' }}>+</span>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Folder</p>
         </div>
-      ) : (
-        <div className="folder-tree">
-          {getRoots().map(f => renderFolder(f, 0))}
+      </div>
+
+      {showNew && (
+        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginTop:'0.5rem' }}>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>
+            New folder {currentFolder ? `inside ${currentFolder.name}` : 'at root level'}
+          </p>
+          <div style={{ display:'flex', gap:'10px', alignItems:'flex-end' }}>
+            <div style={{ flex:1 }}>
+              <input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Folder name..." onKeyDown={e => e.key==='Enter' && create()} autoFocus />
+            </div>
+            <button className="a-btn" onClick={create} style={{ marginBottom:0 }}>Create</button>
+            <button className="a-btn a-btn-ghost" onClick={() => { setShowNew(false); setNewName(''); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {currentChildren.length === 0 && !showNew && (
+        <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>
+            {currentFolder ? `No subfolders in ${currentFolder.name} yet` : 'No folders yet — click + New Folder to start'}
+          </p>
         </div>
       )}
     </>
@@ -302,7 +350,7 @@ function FeaturedTab() {
               <img src={p.url} alt={p.title || ''} loading="lazy" />
               {isFeatured && (
                 <div style={{ position:'absolute', inset:0, background:'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.5rem', color:'#fff', letterSpacing:'0.05em' }}>★</span>
+                  <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.5rem', color:'#fff' }}>★</span>
                 </div>
               )}
             </div>
@@ -409,11 +457,7 @@ function BookingsTab() {
 
 function AboutTab() {
   const toast = useToast();
-  const [form, setForm] = useState({
-    aboutName: 'Madhu Sai Pavan Dasam',
-    aboutRole: 'Photographer · Storyteller · Visual Architect',
-    aboutBio: '',
-  });
+  const [form, setForm] = useState({ aboutName:'Madhu Sai Pavan Dasam', aboutRole:'Photographer · Storyteller · Visual Architect', aboutBio:'' });
   const [aboutPhoto, setAboutPhoto] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -422,12 +466,11 @@ function AboutTab() {
       if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
       if (r.data.aboutName) setForm(f => ({ ...f, aboutName: r.data.aboutName }));
       if (r.data.aboutRole) setForm(f => ({ ...f, aboutRole: r.data.aboutRole }));
-      if (r.data.aboutBio) setForm(f => ({ ...f, aboutBio: r.data.aboutBio }));
+      if (r.data.aboutBio)  setForm(f => ({ ...f, aboutBio:  r.data.aboutBio  }));
     }).catch(() => {});
   }, []);
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-
   const save = async () => {
     try { await api.post('/settings', form); toast('About section saved!'); }
     catch { toast('Error saving'); }
@@ -460,15 +503,14 @@ function AboutTab() {
             <input type="file" accept="image/*" onChange={uploadPhoto} />
             <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
             <p>{uploading ? 'Uploading...' : aboutPhoto ? 'Click to change photo' : 'Upload your photo'}</p>
-            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto-fitted to the about section</p>
+            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto-fitted</p>
           </label>
         </div>
       </div>
       <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} placeholder="Madhu Sai Pavan Dasam" /></Row>
       <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} placeholder="Photographer · Storyteller · Visual Architect" /></Row>
       <Row label="Your Bio">
-        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'160px' }}
-          placeholder="Write your bio here... This will appear on the website about section." />
+        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'160px' }} placeholder="Write your bio here..." />
       </Row>
       <button className="a-btn" onClick={save}>Save About Section</button>
     </>
@@ -570,7 +612,7 @@ function SettingsTab() {
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p className="a-label" style={{ marginBottom:'0.5rem' }}>Hero Background</p>
         <p style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.3)', marginBottom:'1.2rem', fontWeight:300, lineHeight:1.7 }}>
-          This fills the full screen behind BYDASAM on the homepage. Photo or video — video plays silently and loops automatically. Maximum 5 minutes.
+          This fills the full screen behind BYDASAM. Photo or video — video plays silently and loops. Maximum 5 minutes.
         </p>
         {heroMedia && (
           <div style={{ marginBottom:'1rem' }}>
@@ -584,7 +626,7 @@ function SettingsTab() {
         <label className="upload-zone" style={{ maxWidth:'400px' }}>
           <input type="file" accept="image/*,video/*" onChange={uploadHeroMedia} />
           <div className="upload-icon">↑</div>
-          <p style={{ fontSize:'0.9rem', marginBottom:'0.3rem', color:'rgba(255,255,255,0.5)' }}>{uploadingHero ? 'Uploading... this may take a while for videos' : heroMedia ? 'Click to change hero media' : 'Upload photo or video'}</p>
+          <p style={{ fontSize:'0.9rem', marginBottom:'0.3rem', color:'rgba(255,255,255,0.5)' }}>{uploadingHero ? 'Uploading...' : heroMedia ? 'Click to change' : 'Upload photo or video'}</p>
           <p>Photo: JPG PNG WEBP · Video: MP4 MOV (max 5 mins)</p>
         </label>
       </div>
