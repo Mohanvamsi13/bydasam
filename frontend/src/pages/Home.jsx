@@ -62,14 +62,14 @@ function Marquee() {
 
 function Portfolio() {
   const [photos, setPhotos] = useState([]);
-  const [cats, setCats] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [active, setActive] = useState('all');
   const [lb, setLb] = useState({ open: false, idx: 0 });
   useEffect(() => {
-    api.get('/categories').then(r => setCats(r.data)).catch(() => {});
+    api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
     api.get('/photos').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
-  const filtered = active === 'all' ? photos : photos.filter(p => p.category?._id === active);
+  const filtered = active === 'all' ? photos : photos.filter(p => String(p.folder?._id || p.folder) === active);
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
   const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + filtered.length) % filtered.length }));
@@ -88,8 +88,8 @@ function Portfolio() {
         </div>
         <div className="cat-tabs" style={{ border: 'none' }}>
           <button className={`cat-tab${active === 'all' ? ' active' : ''}`} onClick={() => setActive('all')}>All</button>
-          {cats.map(c => (
-            <button key={c._id} className={`cat-tab${active === c._id ? ' active' : ''}`} onClick={() => setActive(c._id)}>{c.name}</button>
+          {folders.filter(f => !f.parent).map(f => (
+            <button key={f._id} className={`cat-tab${active === f._id ? ' active' : ''}`} onClick={() => setActive(f._id)}>{f.name}</button>
           ))}
         </div>
       </div>
@@ -106,7 +106,7 @@ function Portfolio() {
               <div className="masonry-overlay">
                 <div className="masonry-info">
                   {p.title && <h3>{p.title}</h3>}
-                  {p.category?.name && <p>{p.category.name}</p>}
+                  {p.folder?.name && <p>{p.folder.name}</p>}
                 </div>
               </div>
             </div>
@@ -117,10 +117,10 @@ function Portfolio() {
         {lb.open && filtered[lb.idx] && (
           <>
             <img src={filtered[lb.idx].url} alt={filtered[lb.idx].title || ''} onClick={e => e.stopPropagation()} />
-            <button className="lb-close" onClick={closeLb}>Close X</button>
+            <button className="lb-close" onClick={closeLb}>Close ✕</button>
             {filtered.length > 1 && <>
-              <button className="lb-prev" onClick={e => { e.stopPropagation(); prev(); }}>Prev</button>
-              <button className="lb-next" onClick={e => { e.stopPropagation(); next(); }}>Next</button>
+              <button className="lb-prev" onClick={e => { e.stopPropagation(); prev(); }}>← Prev</button>
+              <button className="lb-next" onClick={e => { e.stopPropagation(); next(); }}>Next →</button>
             </>}
             {filtered[lb.idx].title && <div className="lb-caption"><p>{filtered[lb.idx].title}</p></div>}
           </>
@@ -223,28 +223,39 @@ function Booking() {
           </div>
           <div className="form-group full">
             <label className="form-label">Tell Me About Your Vision</label>
-            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references, anything you have in mind..." style={{ resize: 'none', height: '80px' }} />
+            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references, anything you have in mind..." style={{ resize: 'none', height: '100px' }} />
           </div>
         </div>
-        <button type="submit" className="submit-btn" disabled={busy}>{busy ? 'Sending...' : 'Send Request'}</button>
+        <button type="submit" className="submit-btn" disabled={busy}>{busy ? 'Sending...' : 'Send Request →'}</button>
       </form>
     </section>
   );
 }
 
 function About() {
-  const [aboutPhoto, setAboutPhoto] = useState('');
+  const [settings, setSettings] = useState({});
   useEffect(() => {
-    api.get('/settings').then(r => {
-      if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
-    }).catch(() => {});
+    api.get('/settings').then(r => setSettings(r.data)).catch(() => {});
   }, []);
+
+  const name = settings.aboutName || 'Madhu Sai Pavan Dasam';
+  const role = settings.aboutRole || 'Photographer · Storyteller · Visual Architect';
+  const bio  = settings.aboutBio  || '';
+  const photo = settings.aboutPhoto || '';
+
+  const defaultBio = [
+    `I am <strong>${name}</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.`,
+    `Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.`,
+    `Based in <strong>Alabama</strong> and available across the entire United States, I specialize in capturing the moments that words simply cannot describe.`,
+    `I do not just photograph your moments — <strong>I preserve them forever.</strong>`,
+  ];
+
   return (
     <section id="about" style={{ borderTop: '1px solid #111' }}>
       <div className="about-grid">
         <div className="about-visual" style={{ position:'relative', overflow:'hidden' }}>
-          {aboutPhoto ? (
-            <img src={aboutPhoto} alt="Madhu Sai Pavan Dasam" style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} />
+          {photo ? (
+            <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
           ) : (
             <div className="about-visual-inner">
               <span className="about-visual-name">BYDASAM</span>
@@ -252,12 +263,14 @@ function About() {
           )}
         </div>
         <div className="about-text">
-          <p className="about-role">Photographer · Storyteller · Visual Architect</p>
-          <p>I am <strong>Madhu Sai Pavan Dasam</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.</p>
-          <p>Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.</p>
-          <p>Based in <strong>Alabama</strong> and available across the entire United States, I specialize in capturing the moments that words simply cannot describe. Weddings that make you cry rewatching them. Streets that feel alive. Cars that look like they are moving standing still. Abstract work that makes you stop and stare.</p>
-          <p>My unique combination of artistic training and business acumen means I do not just understand photography — <strong>I understand you, your brand, and what you need.</strong></p>
-          <p>I do not just photograph your moments — <strong>I preserve them forever.</strong></p>
+          <p className="about-role">{role}</p>
+          {bio ? (
+            <p>{bio}</p>
+          ) : (
+            defaultBio.map((line, i) => (
+              <p key={i} dangerouslySetInnerHTML={{ __html: line }} />
+            ))
+          )}
         </div>
       </div>
     </section>
@@ -292,7 +305,7 @@ function Footer() {
   return (
     <footer className="footer">
       <span className="footer-brand">BYDASAM</span>
-      <span className="footer-copy">2026 clicksbydasam.com All rights reserved</span>
+      <span className="footer-copy">© 2026 clicksbydasam.com · All rights reserved</span>
     </footer>
   );
 }

@@ -3,7 +3,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-
 const app = express();
 
 app.use(cors({
@@ -15,11 +14,10 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use('/api/auth',     rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }));
 app.use('/api/bookings', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }));
-
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/photos',     require('./routes/photos'));
 app.use('/api/categories', require('./routes/categories'));
@@ -28,7 +26,6 @@ app.use('/api/bookings',   require('./routes/bookings'));
 app.use('/api/settings',   require('./routes/settings'));
 app.use('/api/social',     require('./routes/social'));
 app.get('/api/health', (_, res) => res.json({ ok: true }));
-
 app.use((err, req, res, next) => {
   console.error(err.message);
   res.status(err.status || 500).json({ error: err.message || 'Server error' });

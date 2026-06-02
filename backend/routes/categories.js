@@ -1,13 +1,52 @@
-const r = require('express').Router();
+const router = require('express').Router();
 const { protect } = require('../middleware/auth');
-const { Category } = require('../models');
-r.get('/', async (req,res) => { try { res.json(await Category.find().sort({order:1})); } catch(e){ res.status(500).json({error:e.message}); } });
-r.post('/', protect, async (req,res) => {
+const { Folder } = require('../models');
+
+router.get('/', async (req, res) => {
   try {
-    const slug = req.body.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-    res.status(201).json(await Category.create({...req.body, slug}));
-  } catch(e){ res.status(500).json({error:e.message}); }
+    const folders = await Folder.find().sort({ order: 1, createdAt: 1 });
+    const buildTree = (parentId = null) => {
+      return folders
+        .filter(f => String(f.parent) === String(parentId) || (!f.parent && !parentId))
+        .map(f => ({ ...f.toObject(), children: buildTree(f._id) }));
+    };
+    res.json(buildTree());
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
-r.patch('/:id', protect, async (req,res) => { try { res.json(await Category.findByIdAndUpdate(req.params.id,req.body,{new:true})); } catch(e){ res.status(500).json({error:e.message}); } });
-r.delete('/:id', protect, async (req,res) => { try { await Category.findByIdAndDelete(req.params.id); res.json({message:'Deleted'}); } catch(e){ res.status(500).json({error:e.message}); } });
-module.exports = r;
+
+router.get('/flat', async (req, res) => {
+  try {
+    const folders = await Folder.find().populate('parent','name').sort({ order:1 });
+    res.json(folders);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/', protect, async (req, res) => {
+  try {
+    const { name, parent } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    const folder = await Folder.create({ name, parent: parent || null });
+    res.status(201).json(folder);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+router.patch('/:id', protect, async (req, res) => {
+  try {
+    const folder = await Folder.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(folder);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const deleteRecursive = async (id) => {
+      const children = await Folder.find({ parent: id });
+      for (const child of children) await deleteRecursive(child._id);
+      await Folder.findByIdAndDelete(id);
+    };
+    await deleteRecursive(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+module.exports = router;
