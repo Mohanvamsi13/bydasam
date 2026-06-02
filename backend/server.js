@@ -21,7 +21,6 @@ app.use('/api/bookings', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }));
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/photos',     require('./routes/photos'));
 app.use('/api/categories', require('./routes/categories'));
-app.use('/api/services',   require('./routes/services'));
 app.use('/api/bookings',   require('./routes/bookings'));
 app.use('/api/settings',   require('./routes/settings'));
 app.use('/api/social',     require('./routes/social'));

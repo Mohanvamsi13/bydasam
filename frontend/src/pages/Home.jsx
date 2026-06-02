@@ -60,7 +60,7 @@ function Carousel() {
   const doubled = [...photos, ...photos];
 
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'38vw', maxHeight:'420px', minHeight:'200px', position:'relative' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'28vw', maxHeight:'320px', minHeight:'160px' }}>
       <div style={{
         display:'flex',
         height:'100%',
@@ -68,8 +68,8 @@ function Carousel() {
         animation:`carouselScroll ${photos.length * 3}s linear infinite`,
       }}>
         {doubled.map((p, i) => (
-          <div key={i} style={{ width:`${100 / doubled.length}%`, height:'100%', flexShrink:0 }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />
+          <div key={i} style={{ width:`${100/doubled.length}%`, height:'100%', flexShrink:0 }}>
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>
         ))}
       </div>
@@ -107,7 +107,7 @@ function Portfolio() {
   });
 
   return (
-    <section id="portfolio" style={{ background:'#000', paddingBottom:'3px' }}>
+    <section id="portfolio" style={{ background:'#000' }}>
       <div className="section-header">
         <div>
           <p className="section-label">Selected Work</p>
@@ -178,16 +178,13 @@ function Collections() {
   };
 
   const openFolder = folder => {
-    const newCrumb = [...breadcrumb, folder];
-    setBreadcrumb(newCrumb);
+    setBreadcrumb(prev => [...prev, folder]);
     api.get('/photos?folder=' + folder._id).then(r => setFolderPhotos(r.data)).catch(() => {});
   };
 
   const goToCrumb = idx => {
-    if (idx === -1) {
-      setBreadcrumb([]);
-      setFolderPhotos([]);
-    } else {
+    if (idx === -1) { setBreadcrumb([]); setFolderPhotos([]); }
+    else {
       const newCrumb = breadcrumb.slice(0, idx + 1);
       setBreadcrumb(newCrumb);
       api.get('/photos?folder=' + newCrumb[newCrumb.length - 1]._id).then(r => setFolderPhotos(r.data)).catch(() => {});
@@ -207,7 +204,6 @@ function Collections() {
 
   const rootFolders = getChildren(null);
   if (rootFolders.length === 0) return null;
-
   const currentChildren = currentFolder ? getChildren(currentFolder._id) : rootFolders;
 
   return (
@@ -220,19 +216,20 @@ function Collections() {
       </div>
 
       <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'0 2.5rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length === 0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer', transition:'color 0.2s' }}>All Collections</span>
+        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length===0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>All Collections</span>
         {breadcrumb.map((b, i) => (
           <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
             <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.7rem' }}>›</span>
-            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer', transition:'color 0.2s' }}>{b.name}</span>
+            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>{b.name}</span>
           </span>
         ))}
       </div>
 
       {currentChildren.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px', marginBottom: folderPhotos.length > 0 ? '3px' : 0 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px', marginBottom:'3px' }}>
           {currentChildren.map(f => {
             const cover = getCover(f._id);
+            const subCount = getChildren(f._id).length;
             return (
               <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
                 {cover ? (
@@ -241,15 +238,14 @@ function Collections() {
                     onMouseLeave={e => e.target.style.transform='scale(1)'}
                   />
                 ) : (
-                  <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#161616,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1rem,3vw,2rem)', color:'rgba(255,255,255,0.05)', letterSpacing:'0.06em' }}>{f.name}</span>
-                  </div>
+                  <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#181818,#0d0d0d)' }} />
                 )}
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent, rgba(0,0,0,0.75))' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                    <span style={{ fontSize:'0.7rem' }}>📁</span>
-                    <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
+                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.82))' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+                    <span style={{ fontSize:'0.65rem', opacity:0.7 }}>📁</span>
+                    <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.88rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
                   </div>
+                  {subCount > 0 && <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.62rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{subCount} albums</p>}
                 </div>
               </div>
             );
@@ -356,23 +352,20 @@ function Contact() {
 
 function Booking() {
   const toast = useToast();
-  const [services, setServices] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',service:'',date:'',message:'' });
-  useEffect(() => { api.get('/services').then(r => setServices(r.data)).catch(() => {}); }, []);
+  const [form, setForm] = useState({ firstName:'',lastName:'',email:'',phone:'',date:'',message:'' });
   const set = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   const submit = async e => {
     e.preventDefault();
-    if (!form.firstName || !form.email || !form.service) return toast('Fill in name, email and service.');
+    if (!form.firstName || !form.email) return toast('Fill in your name and email.');
     setBusy(true);
     try {
-      await api.post('/bookings', form);
+      await api.post('/bookings', { ...form, service: 'General Inquiry' });
       toast('Booking sent! I will be in touch within 24h.');
-      setForm({ firstName:'',lastName:'',email:'',phone:'',service:'',date:'',message:'' });
+      setForm({ firstName:'',lastName:'',email:'',phone:'',date:'',message:'' });
     } catch { toast('Something went wrong. Try again.'); }
     finally { setBusy(false); }
   };
-  const defaultServices = ['Wedding','Street','Speed and Steel','Abstract','Portrait','Events'];
   return (
     <section id="booking" style={{ padding:'5rem 2.5rem', borderTop:'1px solid #111' }}>
       <div style={{ marginBottom:'3rem' }}>
@@ -398,21 +391,12 @@ function Booking() {
             <input name="phone" value={form.phone} onChange={set} className="form-input" placeholder="+1 (555) 000-0000" />
           </div>
           <div className="form-group">
-            <label className="form-label">Session Type *</label>
-            <select name="service" value={form.service} onChange={set} className="form-input">
-              <option value="">Select...</option>
-              {(services.length ? services.map(s => s.name) : defaultServices).map(s => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
             <label className="form-label">Preferred Date</label>
             <DatePicker value={form.date} onChange={val => setForm(f => ({ ...f, date: val }))} />
           </div>
           <div className="form-group full">
             <label className="form-label">Tell Me About Your Vision</label>
-            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references..." style={{ resize:'none', height:'100px' }} />
+            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references, anything you have in mind..." style={{ resize:'none', height:'100px' }} />
           </div>
         </div>
         <button type="submit" className="submit-btn" disabled={busy}>{busy ? 'Sending...' : 'Send Request →'}</button>
