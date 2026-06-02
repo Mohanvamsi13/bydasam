@@ -11,7 +11,8 @@ export function useToast() {
     toastEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(hideTimer);
-    const isError = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('failed') || msg.toLowerCase().includes('wrong') || msg.toLowerCase().includes('fill in') || msg.toLowerCase().includes('maximum') || msg.toLowerCase().includes('must be');
+    const lower = msg.toLowerCase();
+    const isError = lower.includes('error') || lower.includes('invalid') || lower.includes('failed') || lower.includes('wrong') || lower.includes('fill in') || lower.includes('maximum') || lower.includes('must be') || lower.includes('required') || lower.includes('try again');
     const ms = duration || (isError ? 30000 : 3000);
     hideTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
   }, []);
