@@ -44,16 +44,21 @@ function Carousel() {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
 
+  const startTimer = (photoCount) => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photoCount), 2500);
+  };
+
   useEffect(() => {
     if (photos.length === 0) return;
-    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photos.length), 5000);
+    startTimer(photos.length);
     return () => clearInterval(timerRef.current);
   }, [photos]);
 
   const go = idx => {
-    clearInterval(timerRef.current);
-    setCurrent((idx + photos.length) % photos.length);
-    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photos.length), 5000);
+    const next = (idx + photos.length) % photos.length;
+    setCurrent(next);
+    startTimer(photos.length);
   };
 
   if (photos.length === 0) {
@@ -72,20 +77,20 @@ function Carousel() {
   }
 
   return (
-    <div style={{ position:'relative', width:'100%', overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'75vh' }}>
-      <div style={{ display:'flex', height:'100%', transition:'transform 0.8s cubic-bezier(0.77,0,0.175,1)', transform:`translateX(-${current * 100}%)` }}>
+    <div style={{ position:'relative', width:'100%', overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'55vw', maxHeight:'620px', minHeight:'320px' }}>
+      <div style={{ display:'flex', height:'100%', transition:'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)', transform:`translateX(-${current * 100}%)` }}>
         {photos.map((p, i) => (
           <div key={i} style={{ minWidth:'100%', height:'100%', flexShrink:0, position:'relative' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.15)' }} />
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />
+            <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.1)' }} />
           </div>
         ))}
       </div>
-      <button onClick={() => go(current - 1)} style={{ position:'absolute', left:'2rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.4)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', width:'52px', height:'52px', borderRadius:'50%', fontSize:'1.2rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)', transition:'all 0.2s' }}>←</button>
-      <button onClick={() => go(current + 1)} style={{ position:'absolute', right:'2rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.4)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', width:'52px', height:'52px', borderRadius:'50%', fontSize:'1.2rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)', transition:'all 0.2s' }}>→</button>
-      <div style={{ position:'absolute', bottom:'1.5rem', left:'50%', transform:'translateX(-50%)', display:'flex', gap:'8px' }}>
+      <button onClick={() => go(current - 1)} style={{ position:'absolute', left:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.35)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }}>←</button>
+      <button onClick={() => go(current + 1)} style={{ position:'absolute', right:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.35)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }}>→</button>
+      <div style={{ position:'absolute', bottom:'1rem', left:'50%', transform:'translateX(-50%)', display:'flex', gap:'6px' }}>
         {photos.map((_, i) => (
-          <button key={i} onClick={() => go(i)} style={{ width: i===current ? '24px' : '8px', height:'8px', borderRadius:'4px', background: i===current ? '#fff' : 'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', transition:'all 0.4s', padding:0 }} />
+          <button key={i} onClick={() => go(i)} style={{ width: i===current ? '20px' : '6px', height:'6px', borderRadius:'3px', background: i===current ? '#fff' : 'rgba(255,255,255,0.35)', border:'none', cursor:'pointer', transition:'all 0.3s', padding:0 }} />
         ))}
       </div>
     </div>
@@ -146,14 +151,6 @@ function Portfolio() {
                 onMouseEnter={e => e.target.style.transform='scale(1.05)'}
                 onMouseLeave={e => e.target.style.transform='scale(1)'}
               />
-              {p.title && (
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'1.2rem 1rem 0.8rem', background:'linear-gradient(transparent,rgba(0,0,0,0.8))', opacity:0, transition:'opacity 0.3s' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity='1'}
-                  onMouseLeave={e => e.currentTarget.style.opacity='0'}
-                >
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.12em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -207,10 +204,6 @@ function Collections() {
     return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
   };
 
-  const getCoverPhoto = folderId => {
-    return null;
-  };
-
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
   const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + folderPhotos.length) % folderPhotos.length }));
@@ -254,7 +247,7 @@ function Collections() {
       {!activeFolder ? (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:'2px', padding:'0 2px' }}>
           {rootFolders.map(f => (
-            <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'4/3', overflow:'hidden', cursor:'pointer', background:'#111', group:true }}>
+            <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'4/3', overflow:'hidden', cursor:'pointer', background:'#111' }}>
               <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#161616,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1.5rem,4vw,3rem)', letterSpacing:'0.08em', color:'rgba(255,255,255,0.06)' }}>{f.name}</span>
               </div>
@@ -286,7 +279,6 @@ function Collections() {
               ))}
             </div>
           )}
-
           {folderPhotos.length > 0 && (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'2px', padding:'0 2px' }}>
               {folderPhotos.map((p, i) => (
@@ -295,16 +287,10 @@ function Collections() {
                     onMouseEnter={e => e.target.style.transform='scale(1.05)'}
                     onMouseLeave={e => e.target.style.transform='scale(1)'}
                   />
-                  {p.title && (
-                    <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.8))' }}>
-                      <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           )}
-
           {subFolders.length === 0 && folderPhotos.length === 0 && (
             <div style={{ textAlign:'center', padding:'4rem', color:'rgba(255,255,255,0.15)' }}>
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
@@ -332,13 +318,11 @@ function Collections() {
 function About() {
   const [settings, setSettings] = useState({});
   useEffect(() => { api.get('/settings').then(r => setSettings(r.data)).catch(() => {}); }, []);
-
   const name  = settings.aboutName  || 'Madhu Sai Pavan Dasam';
   const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
   const bio   = settings.aboutBio   || '';
   const photo = settings.aboutPhoto || '';
   const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
-
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', minHeight:'80vh' }}>
@@ -353,16 +337,36 @@ function About() {
         </div>
         <div style={{ padding:'6rem 5rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'2rem' }}>{role}</p>
-          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2.5rem,5vw,4.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2.5rem' }}>
-            {name.toUpperCase()}
-          </h2>
-          <p style={{ fontSize:'1.05rem', fontWeight:300, lineHeight:1.95, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>
-            {bio || defaultBio}
-          </p>
+          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2.5rem,5vw,4.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2.5rem' }}>{name.toUpperCase()}</h2>
+          <p style={{ fontSize:'1.05rem', fontWeight:300, lineHeight:1.95, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
           <div style={{ marginTop:'3rem' }}>
             <a href="#booking" className="nav-book-btn" style={{ fontSize:'0.85rem', padding:'0.9rem 2.5rem' }}>Book a Session</a>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Contact() {
+  const [socials, setSocials] = useState([]);
+  useEffect(() => { api.get('/social').then(r => setSocials(r.data)).catch(() => {}); }, []);
+  const defaults = [
+    { name: 'WhatsApp', url: 'https://wa.me/12052189806' },
+    { name: 'Instagram', url: 'https://www.instagram.com/pixtron_pixels' },
+    { name: 'Email', url: 'mailto:madhusaipavan02@gmail.com' },
+  ];
+  const list = socials.length ? socials : defaults;
+  return (
+    <section id="contact" style={{ borderTop:'1px solid #111' }}>
+      <div className="contact-hero">
+        <p className="section-label">Lets Create Something</p>
+        <h2 className="contact-big">GET IN TOUCH</h2>
+      </div>
+      <div className="social-strip">
+        {list.map((s, i) => (
+          <a key={i} href={s.url} target="_blank" rel="noreferrer" className="social-link">{s.name}</a>
+        ))}
       </div>
     </section>
   );
@@ -435,30 +439,6 @@ function Booking() {
   );
 }
 
-function Contact() {
-  const [socials, setSocials] = useState([]);
-  useEffect(() => { api.get('/social').then(r => setSocials(r.data)).catch(() => {}); }, []);
-  const defaults = [
-    { name: 'WhatsApp', url: 'https://wa.me/12052189806' },
-    { name: 'Instagram', url: 'https://www.instagram.com/pixtron_pixels' },
-    { name: 'Email', url: 'mailto:madhusaipavan02@gmail.com' },
-  ];
-  const list = socials.length ? socials : defaults;
-  return (
-    <section id="contact" style={{ borderTop:'1px solid #111' }}>
-      <div className="contact-hero">
-        <p className="section-label">Lets Create Something</p>
-        <h2 className="contact-big">GET IN TOUCH</h2>
-      </div>
-      <div className="social-strip">
-        {list.map((s, i) => (
-          <a key={i} href={s.url} target="_blank" rel="noreferrer" className="social-link">{s.name}</a>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function Footer() {
   return (
     <footer className="footer">
@@ -477,8 +457,8 @@ export default function Home() {
       <Portfolio />
       <Collections />
       <About />
-      <Booking />
       <Contact />
+      <Booking />
       <Footer />
     </main>
   );
