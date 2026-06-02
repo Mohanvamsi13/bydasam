@@ -61,7 +61,7 @@ export default function AdminLogin() {
             <>
               <div style={{ marginBottom:'1.5rem' }}>
                 <label className="a-label">Email</label>
-                <input type="email" className="a-input" value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} placeholder="admin@clicksbydasam.com" />
+                <input type="email" className="a-input" value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} />
               </div>
               <div style={{ marginBottom:'2rem' }}>
                 <label className="a-label">Password</label>
@@ -71,14 +71,10 @@ export default function AdminLogin() {
                     className="a-input"
                     value={form.password}
                     onChange={e => setForm(f=>({...f,password:e.target.value}))}
-                    placeholder="••••••••"
-                    style={{ paddingRight:'2.5rem', width:'100%' }}
+                    style={{ paddingRight:'2.5rem', width:'100%', marginBottom:0 }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(s => !s)}
-                    style={{ position:'absolute', right:'0.5rem', background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', padding:'0.2rem', display:'flex', alignItems:'center' }}
-                  >
+                  <button type="button" onClick={() => setShowPass(s => !s)}
+                    style={{ position:'absolute', right:'0.5rem', background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', padding:'0.2rem', display:'flex', alignItems:'center' }}>
                     <EyeIcon open={showPass} />
                   </button>
                 </div>
@@ -94,7 +90,6 @@ export default function AdminLogin() {
                 className="a-input"
                 value={mfaCode}
                 onChange={e => setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))}
-                placeholder="000000"
                 maxLength={6}
                 style={{ textAlign:'center', fontSize:'1.5rem', letterSpacing:'0.5em' }}
                 autoFocus
