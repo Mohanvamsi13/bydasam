@@ -37,32 +37,13 @@ function Hero() {
 
 function Carousel() {
   const [photos, setPhotos] = useState([]);
-  const [current, setCurrent] = useState(0);
-  const timerRef = useRef(null);
-
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
 
-  const startTimer = (photoCount) => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photoCount), 2500);
-  };
-
-  useEffect(() => {
-    if (photos.length === 0) return;
-    startTimer(photos.length);
-    return () => clearInterval(timerRef.current);
-  }, [photos]);
-
-  const go = idx => {
-    const next = (idx + photos.length) % photos.length;
-    setCurrent(next);
-    startTimer(photos.length);
-  };
+  const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
 
   if (photos.length === 0) {
-    const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
     return (
       <div className="marquee-strip">
         <div className="marquee-inner">
@@ -76,35 +57,37 @@ function Carousel() {
     );
   }
 
+  const doubled = [...photos, ...photos];
+
   return (
-    <div style={{ position:'relative', width:'100%', overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'55vw', maxHeight:'620px', minHeight:'320px' }}>
-      <div style={{ display:'flex', height:'100%', transition:'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)', transform:`translateX(-${current * 100}%)` }}>
-        {photos.map((p, i) => (
-          <div key={i} style={{ minWidth:'100%', height:'100%', flexShrink:0, position:'relative' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'55vw', maxHeight:'600px', minHeight:'300px', position:'relative' }}>
+      <div style={{
+        display:'flex',
+        height:'100%',
+        width:`${doubled.length * 100}%`,
+        animation:`carouselScroll ${photos.length * 3}s linear infinite`,
+      }}>
+        {doubled.map((p, i) => (
+          <div key={i} style={{ width:`${100 / doubled.length}%`, height:'100%', flexShrink:0 }}>
             <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />
-            <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.1)' }} />
           </div>
         ))}
       </div>
-      <button onClick={() => go(current - 1)} style={{ position:'absolute', left:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.35)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }}>←</button>
-      <button onClick={() => go(current + 1)} style={{ position:'absolute', right:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.35)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }}>→</button>
-      <div style={{ position:'absolute', bottom:'1rem', left:'50%', transform:'translateX(-50%)', display:'flex', gap:'6px' }}>
-        {photos.map((_, i) => (
-          <button key={i} onClick={() => go(i)} style={{ width: i===current ? '20px' : '6px', height:'6px', borderRadius:'3px', background: i===current ? '#fff' : 'rgba(255,255,255,0.35)', border:'none', cursor:'pointer', transition:'all 0.3s', padding:0 }} />
-        ))}
-      </div>
+      <style>{`
+        @keyframes carouselScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }
 
 function Portfolio() {
   const [photos, setPhotos] = useState([]);
-  const [folders, setFolders] = useState([]);
-  const [active, setActive] = useState('all');
   const [lb, setLb] = useState({ open: false, idx: 0 });
 
   useEffect(() => {
-    api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
     api.get('/photos').then(r => {
       const all = r.data;
       const featured = all.filter(p => p.featured);
@@ -112,11 +95,10 @@ function Portfolio() {
     }).catch(() => {});
   }, []);
 
-  const filtered = active === 'all' ? photos : photos.filter(p => String(p.folder?._id || p.folder) === active);
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
-  const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + filtered.length) % filtered.length }));
-  const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % filtered.length }));
+  const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + photos.length) % photos.length }));
+  const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % photos.length }));
 
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowLeft') prev(); if (e.key === 'ArrowRight') next(); };
@@ -131,22 +113,16 @@ function Portfolio() {
           <p className="section-label">Selected Work</p>
           <h2 className="section-title">PORTFOLIO</h2>
         </div>
-        <div className="cat-tabs" style={{ border:'none' }}>
-          <button className={`cat-tab${active==='all'?' active':''}`} onClick={() => setActive('all')}>All</button>
-          {folders.filter(f => !f.parent).map(f => (
-            <button key={f._id} className={`cat-tab${active===f._id?' active':''}`} onClick={() => setActive(f._id)}>{f.name}</button>
-          ))}
-        </div>
       </div>
-      {filtered.length === 0 ? (
+      {photos.length === 0 ? (
         <div className="empty-state" style={{ minHeight:'40vh' }}>
           <div style={{ fontSize:'2rem', color:'rgba(255,255,255,0.06)' }}>◻</div>
           <p>No photos yet — upload via admin panel</p>
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'2px', padding:'2px' }}>
-          {filtered.map((p, i) => (
-            <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', overflow:'hidden', aspectRatio:'2/3', cursor:'pointer', background:'#111' }}>
+          {photos.map((p, i) => (
+            <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', overflow:'hidden', aspectRatio:'1/1', cursor:'pointer', background:'#111' }}>
               <img src={p.url} alt={p.title||'Photo'} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)', display:'block' }}
                 onMouseEnter={e => e.target.style.transform='scale(1.05)'}
                 onMouseLeave={e => e.target.style.transform='scale(1)'}
@@ -156,11 +132,11 @@ function Portfolio() {
         </div>
       )}
       <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
-        {lb.open && filtered[lb.idx] && (
+        {lb.open && photos[lb.idx] && (
           <>
-            <img src={filtered[lb.idx].url} alt={filtered[lb.idx].title||''} onClick={e => e.stopPropagation()} />
+            <img src={photos[lb.idx].url} alt={photos[lb.idx].title||''} onClick={e => e.stopPropagation()} />
             <button className="lb-close" onClick={closeLb}>Close ✕</button>
-            {filtered.length > 1 && <>
+            {photos.length > 1 && <>
               <button className="lb-prev" onClick={e => { e.stopPropagation(); prev(); }}>← Prev</button>
               <button className="lb-next" onClick={e => { e.stopPropagation(); next(); }}>Next →</button>
             </>}
@@ -238,7 +214,7 @@ function Collections() {
           {breadcrumb.map((b, i) => (
             <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
               <span style={{ color:'rgba(255,255,255,0.2)' }}>›</span>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.3)', cursor:'pointer' }}>{b.name}</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.3)' }}>{b.name}</span>
             </span>
           ))}
         </div>
@@ -249,15 +225,17 @@ function Collections() {
           {rootFolders.map(f => (
             <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'4/3', overflow:'hidden', cursor:'pointer', background:'#111' }}>
               <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#161616,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1.5rem,4vw,3rem)', letterSpacing:'0.08em', color:'rgba(255,255,255,0.06)' }}>{f.name}</span>
+                <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1.5rem,4vw,3rem)', letterSpacing:'0.08em', color:'rgba(255,255,255,0.05)' }}>{f.name}</span>
               </div>
               <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0)', transition:'background 0.3s', display:'flex', alignItems:'flex-end', padding:'1.5rem' }}
                 onMouseEnter={e => e.currentTarget.style.background='rgba(0,0,0,0.4)'}
                 onMouseLeave={e => e.currentTarget.style.background='rgba(0,0,0,0)'}
               >
                 <div>
-                  <p style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.6rem', letterSpacing:'0.06em', color:'#fff' }}>{f.name}</p>
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.72rem', letterSpacing:'0.2em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length > 0 ? `${getChildren(f._id).length} albums` : 'View photos'}</p>
+                  <p style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.8rem', letterSpacing:'0.06em', color:'#fff' }}>{f.name}</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.72rem', letterSpacing:'0.2em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>
+                    {getChildren(f._id).length > 0 ? `${getChildren(f._id).length} albums` : 'View collection'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -270,7 +248,7 @@ function Collections() {
               {subFolders.map(f => (
                 <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'4/3', overflow:'hidden', cursor:'pointer', background:'#111' }}>
                   <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#161616,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.5rem', letterSpacing:'0.06em', color:'rgba(255,255,255,0.06)' }}>{f.name}</span>
+                    <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.5rem', letterSpacing:'0.06em', color:'rgba(255,255,255,0.05)' }}>{f.name}</span>
                   </div>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'flex-end', padding:'1.2rem' }}>
                     <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.9rem', letterSpacing:'0.12em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
@@ -282,7 +260,7 @@ function Collections() {
           {folderPhotos.length > 0 && (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'2px', padding:'0 2px' }}>
               {folderPhotos.map((p, i) => (
-                <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', aspectRatio:'3/4', overflow:'hidden', cursor:'pointer', background:'#111' }}>
+                <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', aspectRatio:'1/1', overflow:'hidden', cursor:'pointer', background:'#111' }}>
                   <img src={p.url} alt={p.title||''} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s', display:'block' }}
                     onMouseEnter={e => e.target.style.transform='scale(1.05)'}
                     onMouseLeave={e => e.target.style.transform='scale(1)'}
