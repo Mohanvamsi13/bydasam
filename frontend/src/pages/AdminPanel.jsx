@@ -6,6 +6,7 @@ import { useToast } from '../hooks/useToast';
 
 const TABS = [
   { id:'Photos', icon:'📷' },
+  { id:'Carousel', icon:'🎠' },
   { id:'Folders', icon:'📁' },
   { id:'Featured', icon:'⭐' },
   { id:'Services', icon:'💼' },
@@ -68,6 +69,7 @@ export default function AdminPanel() {
             ))}
           </div>
           {tab==='Photos'   && <PhotosTab />}
+          {tab==='Carousel' && <CarouselTab />}
           {tab==='Folders'  && <FoldersTab />}
           {tab==='Featured' && <FeaturedTab />}
           {tab==='Services' && <ServicesTab />}
@@ -157,12 +159,10 @@ function PhotosTab() {
       <label className="upload-zone">
         <input type="file" accept="image/*" multiple onChange={upload} />
         <div className="upload-icon">↑</div>
-        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy ? 'Uploading...' : 'Click or drag photos here'}</p>
-        <p>JPG · PNG · WEBP · Multiple files · Up to 10GB each</p>
+        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy ? 'Uploading & compressing...' : 'Click or drag photos here'}</p>
+        <p>JPG · PNG · WEBP · Multiple files · Auto compressed</p>
       </label>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
-        <p className="a-label" style={{ margin:0 }}>All Photos ({photos.length})</p>
-      </div>
+      <p className="a-label" style={{ marginBottom:'0.8rem' }}>All Photos ({photos.length})</p>
       <div className="thumb-grid">
         {photos.map(p => (
           <div key={p._id} className="thumb">
@@ -186,6 +186,78 @@ function PhotosTab() {
   );
 }
 
+function CarouselTab() {
+  const toast = useToast();
+  const [photos, setPhotos] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const upload = async e => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    if (photos.length + files.length > 20) return toast('Maximum 20 photos in carousel!');
+    setBusy(true);
+    const fd = new FormData();
+    files.forEach(f => fd.append('photos', f));
+    try {
+      await api.post('/settings/carousel', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast(files.length + ' photo(s) added to carousel!');
+      e.target.value = '';
+      load();
+    } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
+    finally { setBusy(false); }
+  };
+
+  const del = async publicId => {
+    if (!confirm('Remove from carousel?')) return;
+    try {
+      await api.delete('/settings/carousel/' + encodeURIComponent(publicId));
+      toast('Removed');
+      load();
+    } catch { toast('Error'); }
+  };
+
+  return (
+    <>
+      <SectionHeader title="Carousel" sub={`Manage sliding photos on homepage — ${photos.length}/20 photos`} />
+      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>
+          {photos.length} of 20 carousel photos
+        </p>
+        <div style={{ display:'flex', gap:'4px' }}>
+          {Array(20).fill(null).map((_, i) => (
+            <div key={i} style={{ width:'8px', height:'8px', borderRadius:'50%', background: i < photos.length ? '#fff' : '#222' }} />
+          ))}
+        </div>
+      </div>
+      <label className="upload-zone">
+        <input type="file" accept="image/*" multiple onChange={upload} />
+        <div className="upload-icon">↑</div>
+        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy ? 'Uploading & compressing...' : 'Click or drag carousel photos here'}</p>
+        <p>Full width display · Auto compressed · Up to 20 photos</p>
+      </label>
+      <div className="thumb-grid">
+        {photos.map((p, i) => (
+          <div key={i} className="thumb">
+            <img src={p.url} alt="" loading="lazy" />
+            <div className="thumb-del">
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => del(p.publicId)}>Remove</button>
+            </div>
+            <div style={{ position:'absolute', top:4, left:4, background:'rgba(0,0,0,0.7)', color:'rgba(255,255,255,0.6)', fontSize:'0.55rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>{i+1}</div>
+          </div>
+        ))}
+      </div>
+      {photos.length === 0 && (
+        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No carousel photos yet</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 function FoldersTab() {
   const toast = useToast();
   const [folders, setFolders] = useState([]);
@@ -202,11 +274,6 @@ function FoldersTab() {
     return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
   };
 
-  const getPhotoCount = (folderId) => {
-    const children = folders.filter(f => String(f.parent?._id || f.parent) === String(folderId));
-    return children.length;
-  };
-
   const openFolder = (folder) => {
     setCurrentFolder(folder);
     setBreadcrumb(prev => [...prev, folder]);
@@ -214,14 +281,8 @@ function FoldersTab() {
   };
 
   const goTo = (idx) => {
-    if (idx === -1) {
-      setCurrentFolder(null);
-      setBreadcrumb([]);
-    } else {
-      const target = breadcrumb[idx];
-      setCurrentFolder(target);
-      setBreadcrumb(breadcrumb.slice(0, idx + 1));
-    }
+    if (idx === -1) { setCurrentFolder(null); setBreadcrumb([]); }
+    else { setCurrentFolder(breadcrumb[idx]); setBreadcrumb(breadcrumb.slice(0, idx + 1)); }
     setShowNew(false);
   };
 
@@ -230,9 +291,7 @@ function FoldersTab() {
     try {
       await api.post('/categories', { name: newName.trim(), parent: currentFolder?._id || null });
       toast('Folder created!');
-      setNewName('');
-      setShowNew(false);
-      load();
+      setNewName(''); setShowNew(false); load();
     } catch(e) { toast(e.response?.data?.error || 'Error'); }
   };
 
@@ -248,17 +307,15 @@ function FoldersTab() {
   return (
     <>
       <SectionHeader title="Folders" sub="Organise your photos into folders and subfolders" />
-
       <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
         <span onClick={() => goTo(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: currentFolder ? 'rgba(255,255,255,0.4)' : '#fff', cursor:'pointer' }}>All Folders</span>
         {breadcrumb.map((b, i) => (
           <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
             <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.7rem' }}>›</span>
-            <span onClick={() => goTo(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i === breadcrumb.length - 1 ? '#fff' : 'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
+            <span onClick={() => goTo(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
           </span>
         ))}
       </div>
-
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'10px', marginBottom:'1.5rem' }}>
         {currentChildren.map(f => (
           <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer', transition:'border-color 0.2s' }}
@@ -268,15 +325,14 @@ function FoldersTab() {
             <div style={{ height:'90px', background:'linear-gradient(135deg,#151515,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📁</div>
             <div style={{ padding:'10px 12px' }}>
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', marginBottom:'3px' }}>{f.name}</p>
-              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getPhotoCount(f._id)} subfolders</p>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getChildren(f._id).length} subfolders</p>
             </div>
             <div style={{ padding:'0 10px 10px', display:'flex', justifyContent:'flex-end' }}>
               <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={(e) => del(f._id, e)}>Delete</button>
             </div>
           </div>
         ))}
-
-        <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px', transition:'border-color 0.2s' }}
+        <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px' }}
           onMouseEnter={e => e.currentTarget.style.borderColor='#444'}
           onMouseLeave={e => e.currentTarget.style.borderColor='#222'}
         >
@@ -284,26 +340,22 @@ function FoldersTab() {
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Folder</p>
         </div>
       </div>
-
       {showNew && (
-        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginTop:'0.5rem' }}>
-          <p className="a-label" style={{ marginBottom:'1rem' }}>
-            New folder {currentFolder ? `inside ${currentFolder.name}` : 'at root level'}
-          </p>
+        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>New folder {currentFolder ? `inside ${currentFolder.name}` : 'at root level'}</p>
           <div style={{ display:'flex', gap:'10px', alignItems:'flex-end' }}>
             <div style={{ flex:1 }}>
               <input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Folder name..." onKeyDown={e => e.key==='Enter' && create()} autoFocus />
             </div>
-            <button className="a-btn" onClick={create} style={{ marginBottom:0 }}>Create</button>
+            <button className="a-btn" onClick={create}>Create</button>
             <button className="a-btn a-btn-ghost" onClick={() => { setShowNew(false); setNewName(''); }}>Cancel</button>
           </div>
         </div>
       )}
-
       {currentChildren.length === 0 && !showNew && (
         <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>
-            {currentFolder ? `No subfolders in ${currentFolder.name} yet` : 'No folders yet — click + New Folder to start'}
+            {currentFolder ? `No subfolders in ${currentFolder.name}` : 'No folders yet — click + New Folder'}
           </p>
         </div>
       )}
@@ -324,18 +376,16 @@ function FeaturedTab() {
   useEffect(() => { load(); }, []);
 
   const toggle = async (id, isFeatured) => {
-    if (!isFeatured && featured.length >= 20) return toast('Maximum 20 featured photos allowed!');
+    if (!isFeatured && featured.length >= 20) return toast('Maximum 20 featured photos!');
     try { await api.patch('/photos/' + id, { featured: !isFeatured }); load(); }
     catch { toast('Error'); }
   };
 
   return (
     <>
-      <SectionHeader title="Featured Photos" sub={`Select up to 20 photos to feature on your homepage — ${featured.length}/20 selected`} />
+      <SectionHeader title="Featured Photos" sub={`Select up to 20 photos for your portfolio — ${featured.length}/20 selected`} />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>
-          {featured.length} of 20 photos featured
-        </p>
+        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>{featured.length} of 20 selected</p>
         <div style={{ display:'flex', gap:'4px' }}>
           {Array(20).fill(null).map((_, i) => (
             <div key={i} style={{ width:'8px', height:'8px', borderRadius:'50%', background: i < featured.length ? '#fff' : '#222' }} />
@@ -492,25 +542,26 @@ function AboutTab() {
 
   return (
     <>
-      <SectionHeader title="About" sub="Edit your about section — changes reflect instantly on the website" />
+      <SectionHeader title="About" sub="Edit your about section — updates instantly on the website" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
         <p className="a-label" style={{ marginBottom:'1rem' }}>Your Photo</p>
         <div style={{ display:'flex', gap:'1.5rem', alignItems:'flex-start', flexWrap:'wrap' }}>
           {aboutPhoto && (
-            <img src={aboutPhoto} alt="About" style={{ width:'120px', height:'150px', objectFit:'cover', borderRadius:'6px', opacity:0.85 }} />
+            <img src={aboutPhoto} alt="About" style={{ width:'100px', height:'130px', objectFit:'cover', borderRadius:'6px', opacity:0.85 }} />
           )}
           <label className="upload-zone" style={{ flex:1, minWidth:'200px', padding:'1.5rem' }}>
             <input type="file" accept="image/*" onChange={uploadPhoto} />
             <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
             <p>{uploading ? 'Uploading...' : aboutPhoto ? 'Click to change photo' : 'Upload your photo'}</p>
-            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto-fitted</p>
+            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed & fitted</p>
           </label>
         </div>
       </div>
       <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} placeholder="Madhu Sai Pavan Dasam" /></Row>
       <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} placeholder="Photographer · Storyteller · Visual Architect" /></Row>
       <Row label="Your Bio">
-        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'160px' }} placeholder="Write your bio here..." />
+        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'200px' }}
+          placeholder="Write your bio here. This appears on the website about section." />
       </Row>
       <button className="a-btn" onClick={save}>Save About Section</button>
     </>
@@ -563,6 +614,7 @@ function SettingsTab() {
   const [heroMedia, setHeroMedia] = useState('');
   const [heroMediaType, setHeroMediaType] = useState('');
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     api.get('/settings').then(r => {
@@ -580,11 +632,7 @@ function SettingsTab() {
       video.preload = 'metadata';
       video.onloadedmetadata = async () => {
         window.URL.revokeObjectURL(video.src);
-        if (video.duration > 300) {
-          toast('Video must be maximum 5 minutes long!');
-          e.target.value = '';
-          return;
-        }
+        if (video.duration > 5000) { toast('Video must be maximum 5000 seconds!'); e.target.value = ''; return; }
         await doHeroUpload(file, e);
       };
       video.src = URL.createObjectURL(file);
@@ -595,15 +643,19 @@ function SettingsTab() {
 
   const doHeroUpload = async (file, e) => {
     setUploadingHero(true);
+    setProgress(0);
     const fd = new FormData();
     fd.append('media', file);
     try {
-      const { data } = await api.post('/settings/hero-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data } = await api.post('/settings/hero-media', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: p => setProgress(Math.round(p.loaded * 100 / p.total)),
+      });
       setHeroMedia(data.url);
       setHeroMediaType(data.type);
       toast('Hero media updated!');
     } catch { toast('Upload failed'); }
-    finally { setUploadingHero(false); e.target.value = ''; }
+    finally { setUploadingHero(false); setProgress(0); e.target.value = ''; }
   };
 
   return (
@@ -612,7 +664,7 @@ function SettingsTab() {
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p className="a-label" style={{ marginBottom:'0.5rem' }}>Hero Background</p>
         <p style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.3)', marginBottom:'1.2rem', fontWeight:300, lineHeight:1.7 }}>
-          This fills the full screen behind BYDASAM. Photo or video — video plays silently and loops. Maximum 5 minutes.
+          Fills the full screen behind BYDASAM. Photo or video — video plays silently and loops. Supports MP4, MOV, AVI, WebM. 20 seconds to 5000 seconds.
         </p>
         {heroMedia && (
           <div style={{ marginBottom:'1rem' }}>
@@ -623,11 +675,23 @@ function SettingsTab() {
             )}
           </div>
         )}
+        {uploadingHero && progress > 0 && (
+          <div style={{ marginBottom:'1rem' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.4)', textTransform:'uppercase' }}>Uploading & compressing...</p>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', color:'rgba(255,255,255,0.4)' }}>{progress}%</p>
+            </div>
+            <div style={{ height:'2px', background:'#1a1a1a', borderRadius:'1px' }}>
+              <div style={{ height:'100%', background:'#fff', borderRadius:'1px', width:`${progress}%`, transition:'width 0.3s' }} />
+            </div>
+          </div>
+        )}
         <label className="upload-zone" style={{ maxWidth:'400px' }}>
-          <input type="file" accept="image/*,video/*" onChange={uploadHeroMedia} />
+          <input type="file" accept="image/*,video/mp4,video/mov,video/avi,video/webm" onChange={uploadHeroMedia} />
           <div className="upload-icon">↑</div>
           <p style={{ fontSize:'0.9rem', marginBottom:'0.3rem', color:'rgba(255,255,255,0.5)' }}>{uploadingHero ? 'Uploading...' : heroMedia ? 'Click to change' : 'Upload photo or video'}</p>
-          <p>Photo: JPG PNG WEBP · Video: MP4 MOV (max 5 mins)</p>
+          <p>Photo: JPG PNG WEBP · Video: MP4 MOV AVI WebM</p>
+          <p style={{ marginTop:'0.3rem' }}>Auto compressed for best quality</p>
         </label>
       </div>
     </>
@@ -646,8 +710,7 @@ function SecurityTab() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/mfa/setup');
-      setQrCode(data.qrCode);
-      setSecret(data.secret);
+      setQrCode(data.qrCode); setSecret(data.secret);
       toast('Scan the QR code with Google Authenticator');
     } catch { toast('Error setting up MFA'); }
     finally { setLoading(false); }
@@ -657,13 +720,13 @@ function SecurityTab() {
     if (code.length !== 6) return toast('Enter a 6-digit code');
     try {
       await api.post('/auth/mfa/verify', { token: code });
-      toast('MFA enabled successfully!');
+      toast('MFA enabled!');
       setMfaOn(true); setQrCode(''); setCode('');
     } catch { toast('Invalid code. Try again.'); }
   };
 
   const disableMfa = async () => {
-    if (!confirm('Are you sure you want to disable MFA?')) return;
+    if (!confirm('Disable MFA?')) return;
     try {
       await api.post('/auth/mfa/disable');
       toast('MFA disabled.');
@@ -676,7 +739,7 @@ function SecurityTab() {
       <SectionHeader title="Security" sub="Set up two-factor authentication for your admin login" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p style={{ fontSize:'0.95rem', color:'rgba(255,255,255,0.5)', lineHeight:1.8, marginBottom:'1.5rem', fontWeight:300 }}>
-          Multi-Factor Authentication adds an extra layer of security. After entering your password you will be asked for a 6-digit code from Google Authenticator on your phone.
+          After entering your password you will be asked for a 6-digit code from Google Authenticator on your phone. This prevents anyone from logging in even if they know your password.
         </p>
         {!mfaOn && !qrCode && (
           <button className="a-btn" onClick={setupMfa} disabled={loading}>
@@ -688,7 +751,7 @@ function SecurityTab() {
             <p className="a-label" style={{ marginBottom:'1rem' }}>Step 1 — Scan this QR code with Google Authenticator</p>
             <img src={qrCode} alt="QR Code" style={{ width:'180px', height:'180px', background:'#fff', padding:'8px', borderRadius:'8px', marginBottom:'1rem' }} />
             <p style={{ fontSize:'0.82rem', color:'rgba(255,255,255,0.25)', marginBottom:'1.5rem', fontWeight:300 }}>
-              Cannot scan? Enter this code manually: <span style={{ color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em' }}>{secret}</span>
+              Cannot scan? Enter manually: <span style={{ color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em' }}>{secret}</span>
             </p>
             <p className="a-label" style={{ marginBottom:'0.8rem' }}>Step 2 — Enter the 6-digit code from the app</p>
             <input className="a-input" value={code} onChange={e => setCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" maxLength={6} style={{ maxWidth:'200px', textAlign:'center', fontSize:'1.4rem', letterSpacing:'0.5em' }} />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -35,26 +35,59 @@ function Hero() {
   );
 }
 
-function Marquee() {
+function Carousel() {
   const [photos, setPhotos] = useState([]);
-  useEffect(() => { api.get('/photos').then(r => setPhotos(r.data)).catch(() => {}); }, []);
-  const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
-  const doubled = photos.length > 0 ? [...photos, ...photos] : null;
-  return (
-    <div className="marquee-strip">
-      <div className="marquee-inner">
-        {doubled ? (
-          doubled.map((p, i) => (
-            <img key={i} src={p.url} alt={p.title || ''} className="marquee-photo" />
-          ))
-        ) : (
-          [...items, ...items].map((item, i) => (
+  const [current, setCurrent] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (photos.length === 0) return;
+    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photos.length), 4000);
+    return () => clearInterval(timerRef.current);
+  }, [photos]);
+
+  const go = (idx) => {
+    clearInterval(timerRef.current);
+    setCurrent((idx + photos.length) % photos.length);
+    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % photos.length), 4000);
+  };
+
+  if (photos.length === 0) {
+    const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
+    const all = [...items, ...items];
+    return (
+      <div className="marquee-strip">
+        <div className="marquee-inner">
+          {all.map((item, i) => (
             <span key={i} className="marquee-item">
               {item}
-              {i < items.length * 2 - 1 && <span className="marquee-dot" />}
+              {i < all.length - 1 && <span className="marquee-dot" />}
             </span>
-          ))
-        )}
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position:'relative', width:'100%', overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111' }}>
+      <div style={{ display:'flex', transition:'transform 0.6s cubic-bezier(0.77,0,0.175,1)', transform:`translateX(-${current * 100}%)` }}>
+        {photos.map((p, i) => (
+          <div key={i} style={{ minWidth:'100%', height:'70vh', flexShrink:0, position:'relative' }}>
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} />
+          </div>
+        ))}
+      </div>
+      <button onClick={() => go(current - 1)} style={{ position:'absolute', left:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1.1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>←</button>
+      <button onClick={() => go(current + 1)} style={{ position:'absolute', right:'1.5rem', top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', width:'44px', height:'44px', borderRadius:'50%', fontSize:'1.1rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>→</button>
+      <div style={{ position:'absolute', bottom:'1.2rem', left:'50%', transform:'translateX(-50%)', display:'flex', gap:'6px' }}>
+        {photos.map((_, i) => (
+          <button key={i} onClick={() => go(i)} style={{ width: i===current ? '20px' : '6px', height:'6px', borderRadius:'3px', background: i===current ? '#fff' : 'rgba(255,255,255,0.3)', border:'none', cursor:'pointer', transition:'all 0.3s', padding:0 }} />
+        ))}
       </div>
     </div>
   );
@@ -65,55 +98,68 @@ function Portfolio() {
   const [folders, setFolders] = useState([]);
   const [active, setActive] = useState('all');
   const [lb, setLb] = useState({ open: false, idx: 0 });
+
   useEffect(() => {
     api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
-    api.get('/photos').then(r => setPhotos(r.data)).catch(() => {});
+    api.get('/photos').then(r => {
+      const all = r.data;
+      const featured = all.filter(p => p.featured);
+      setPhotos(featured.length > 0 ? featured : all);
+    }).catch(() => {});
   }, []);
+
   const filtered = active === 'all' ? photos : photos.filter(p => String(p.folder?._id || p.folder) === active);
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
   const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + filtered.length) % filtered.length }));
   const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % filtered.length }));
+
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowLeft') prev(); if (e.key === 'ArrowRight') next(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
   });
+
   return (
-    <section id="portfolio" style={{ background: '#000', paddingBottom: '3px' }}>
+    <section id="portfolio" style={{ background:'#000', paddingBottom:'3px' }}>
       <div className="section-header">
         <div>
           <p className="section-label">Selected Work</p>
           <h2 className="section-title">PORTFOLIO</h2>
         </div>
-        <div className="cat-tabs" style={{ border: 'none' }}>
-          <button className={`cat-tab${active === 'all' ? ' active' : ''}`} onClick={() => setActive('all')}>All</button>
+        <div className="cat-tabs" style={{ border:'none' }}>
+          <button className={`cat-tab${active==='all'?' active':''}`} onClick={() => setActive('all')}>All</button>
           {folders.filter(f => !f.parent).map(f => (
-            <button key={f._id} className={`cat-tab${active === f._id ? ' active' : ''}`} onClick={() => setActive(f._id)}>{f.name}</button>
+            <button key={f._id} className={`cat-tab${active===f._id?' active':''}`} onClick={() => setActive(f._id)}>{f.name}</button>
           ))}
         </div>
       </div>
       {filtered.length === 0 ? (
-        <div className="empty-state" style={{ minHeight: '40vh' }}>
-          <div style={{ fontSize: '2rem', color: 'rgba(255,255,255,0.06)' }}>◻</div>
+        <div className="empty-state" style={{ minHeight:'40vh' }}>
+          <div style={{ fontSize:'2rem', color:'rgba(255,255,255,0.06)' }}>◻</div>
           <p>No photos yet — upload via admin panel</p>
         </div>
       ) : (
-        <div className="masonry">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:'3px', padding:'3px' }}>
           {filtered.map((p, i) => (
-            <div key={p._id} className="masonry-item" onClick={() => openLb(i)}>
-              <img src={p.url} alt={p.title || 'Photo'} loading="lazy" />
-              <div className="masonry-overlay">
-                <div className="masonry-info">
-                  {p.title && <h3>{p.title}</h3>}
-                  {p.folder?.name && <p>{p.folder.name}</p>}
+            <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', overflow:'hidden', aspectRatio:'3/4', cursor:'pointer', background:'#111' }}>
+              <img src={p.url} alt={p.title || 'Photo'} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)' }}
+                onMouseEnter={e => e.target.style.transform='scale(1.04)'}
+                onMouseLeave={e => e.target.style.transform='scale(1)'}
+              />
+              {p.title && (
+                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'1rem', background:'linear-gradient(transparent, rgba(0,0,0,0.7))', opacity:0, transition:'opacity 0.3s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity='1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity='0'}
+                >
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
       )}
-      <div className={`lightbox${lb.open ? ' open' : ''}`} onClick={closeLb}>
+      <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
         {lb.open && filtered[lb.idx] && (
           <>
             <img src={filtered[lb.idx].url} alt={filtered[lb.idx].title || ''} onClick={e => e.stopPropagation()} />
@@ -143,13 +189,13 @@ function Services() {
   ];
   const list = services.length ? services : defaults;
   return (
-    <section id="services" style={{ background: '#000', paddingTop: '4rem' }}>
-      <div className="section-header" style={{ paddingBottom: '1rem' }}>
+    <section id="services" style={{ background:'#000', paddingTop:'4rem' }}>
+      <div className="section-header" style={{ paddingBottom:'1rem' }}>
         <div>
           <p className="section-label">What I Do</p>
           <h2 className="section-title">SERVICES</h2>
         </div>
-        <a href="#booking" className="nav-book-btn" style={{ alignSelf: 'flex-end' }}>Book Now</a>
+        <a href="#booking" className="nav-book-btn" style={{ alignSelf:'flex-end' }}>Book Now</a>
       </div>
       <div className="services-grid">
         {list.map(s => (
@@ -185,8 +231,8 @@ function Booking() {
   };
   const defaultServices = ['Wedding','Street','Speed and Steel','Abstract','Portrait','Events'];
   return (
-    <section id="booking" style={{ padding: '5rem 2.5rem', borderTop: '1px solid #111' }}>
-      <div style={{ marginBottom: '3rem' }}>
+    <section id="booking" style={{ padding:'5rem 2.5rem', borderTop:'1px solid #111' }}>
+      <div style={{ marginBottom:'3rem' }}>
         <p className="section-label">Reserve Your Date</p>
         <h2 className="section-title">BOOK A SESSION</h2>
       </div>
@@ -223,7 +269,7 @@ function Booking() {
           </div>
           <div className="form-group full">
             <label className="form-label">Tell Me About Your Vision</label>
-            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references, anything you have in mind..." style={{ resize: 'none', height: '100px' }} />
+            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references..." style={{ resize:'none', height:'100px' }} />
           </div>
         </div>
         <button type="submit" className="submit-btn" disabled={busy}>{busy ? 'Sending...' : 'Send Request →'}</button>
@@ -234,43 +280,38 @@ function Booking() {
 
 function About() {
   const [settings, setSettings] = useState({});
-  useEffect(() => {
-    api.get('/settings').then(r => setSettings(r.data)).catch(() => {});
-  }, []);
+  useEffect(() => { api.get('/settings').then(r => setSettings(r.data)).catch(() => {}); }, []);
 
-  const name = settings.aboutName || 'Madhu Sai Pavan Dasam';
-  const role = settings.aboutRole || 'Photographer · Storyteller · Visual Architect';
-  const bio  = settings.aboutBio  || '';
+  const name  = settings.aboutName  || 'Madhu Sai Pavan Dasam';
+  const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
+  const bio   = settings.aboutBio   || '';
   const photo = settings.aboutPhoto || '';
 
-  const defaultBio = [
-    `I am <strong>${name}</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.`,
-    `Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.`,
-    `Based in <strong>Alabama</strong> and available across the entire United States, I specialize in capturing the moments that words simply cannot describe.`,
-    `I do not just photograph your moments — <strong>I preserve them forever.</strong>`,
-  ];
+  const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
 
   return (
-    <section id="about" style={{ borderTop: '1px solid #111' }}>
-      <div className="about-grid">
-        <div className="about-visual" style={{ position:'relative', overflow:'hidden' }}>
+    <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', minHeight:'80vh' }}>
+        <div style={{ position:'relative', overflow:'hidden', background:'#0a0a0a' }}>
           {photo ? (
             <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
           ) : (
-            <div className="about-visual-inner">
-              <span className="about-visual-name">BYDASAM</span>
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(4rem,10vw,9rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
             </div>
           )}
         </div>
-        <div className="about-text">
-          <p className="about-role">{role}</p>
-          {bio ? (
-            <p>{bio}</p>
-          ) : (
-            defaultBio.map((line, i) => (
-              <p key={i} dangerouslySetInnerHTML={{ __html: line }} />
-            ))
-          )}
+        <div style={{ padding:'6rem 5rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'2rem' }}>{role}</p>
+          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2.5rem,5vw,4.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2.5rem' }}>
+            {name.toUpperCase()}
+          </h2>
+          <p style={{ fontSize:'1.05rem', fontWeight:300, lineHeight:1.95, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>
+            {bio || defaultBio}
+          </p>
+          <div style={{ marginTop:'3rem' }}>
+            <a href="#booking" className="nav-book-btn" style={{ fontSize:'0.85rem', padding:'0.9rem 2.5rem' }}>Book a Session</a>
+          </div>
         </div>
       </div>
     </section>
@@ -287,7 +328,7 @@ function Contact() {
   ];
   const list = socials.length ? socials : defaults;
   return (
-    <section id="contact" style={{ borderTop: '1px solid #111' }}>
+    <section id="contact" style={{ borderTop:'1px solid #111' }}>
       <div className="contact-hero">
         <p className="section-label">Lets Create Something</p>
         <h2 className="contact-big">GET IN TOUCH</h2>
@@ -312,10 +353,10 @@ function Footer() {
 
 export default function Home() {
   return (
-    <main style={{ background: '#000', minHeight: '100vh' }}>
+    <main style={{ background:'#000', minHeight:'100vh' }}>
       <Navbar />
       <Hero />
-      <Marquee />
+      <Carousel />
       <Portfolio />
       <About />
       <Services />

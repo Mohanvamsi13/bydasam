@@ -16,19 +16,18 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'bydasam',
     allowed_formats: ['jpg','jpeg','png','webp','gif','tiff','bmp'],
-    transformation: [{ width: 2400, crop: 'limit', quality: 'auto' }],
+    transformation: [{ width:2400, crop:'limit', quality:'auto:good', fetch_format:'auto' }],
   }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 * 1024 },
-});
+const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
 router.get('/', async (req, res) => {
   try {
-    const q = req.query.folder ? { folder: req.query.folder } : {};
+    const q = {};
+    if (req.query.folder) q.folder = req.query.folder;
     if (req.query.featured) q.featured = true;
+    if (req.query.type) q.type = req.query.type;
     const photos = await Photo.find(q).populate('folder','name').sort({ order:1, createdAt:-1 });
     res.json(photos);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -42,6 +41,7 @@ router.post('/', protect, upload.array('photos', 100), async (req, res) => {
         url:      f.path,
         publicId: f.filename,
         folder:   req.body.folder || null,
+        type:     req.body.type || 'portfolio',
         order:    i,
       }))
     );

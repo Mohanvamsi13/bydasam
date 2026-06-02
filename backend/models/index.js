@@ -15,18 +15,19 @@ adminSchema.pre('save', async function(next){
 adminSchema.methods.comparePassword = function(p){ return bcrypt.compare(p, this.password); };
 
 const folderSchema = new mongoose.Schema({
-  name:     { type:String, required:true },
-  parent:   { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
-  order:    { type:Number, default:0 },
+  name:   { type:String, required:true },
+  parent: { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
+  order:  { type:Number, default:0 },
 }, { timestamps:true });
 
 const photoSchema = new mongoose.Schema({
-  title:     { type:String, default:'' },
-  url:       { type:String, required:true },
-  publicId:  { type:String, required:true },
-  folder:    { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
-  featured:  { type:Boolean, default:false },
-  order:     { type:Number, default:0 },
+  title:    { type:String, default:'' },
+  url:      { type:String, required:true },
+  publicId: { type:String, required:true },
+  folder:   { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
+  type:     { type:String, enum:['portfolio','carousel'], default:'portfolio' },
+  featured: { type:Boolean, default:false },
+  order:    { type:Number, default:0 },
 }, { timestamps:true });
 
 const serviceSchema = new mongoose.Schema({ name:{type:String,required:true}, desc:{type:String,default:''}, price:{type:String,default:'Contact for pricing'}, order:{type:Number,default:0} }, { timestamps:true });
