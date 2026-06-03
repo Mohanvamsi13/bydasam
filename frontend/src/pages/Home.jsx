@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -57,28 +57,31 @@ function Carousel() {
     );
   }
 
+  const FRAME_W = 120;
+  const FRAME_H = 75;
+  const GAP = 8;
   const doubled = [...photos, ...photos];
-  const duration = photos.length * 5;
+  const duration = photos.length * 4;
 
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0' }}>
       <div style={{
         display:'flex',
-        gap:'8px',
-        height:'80px',
+        gap:`${GAP}px`,
+        height:`${FRAME_H}px`,
+        width:`${doubled.length * (FRAME_W + GAP)}px`,
         animation:`carouselScroll ${duration}s linear infinite`,
-        width:`calc(${doubled.length} * (140px + 8px))`,
       }}>
         {doubled.map((p, i) => (
-          <div key={i} style={{ width:'140px', height:'80px', flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          <div key={i} style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
           </div>
         ))}
       </div>
       <style>{`
         @keyframes carouselScroll {
           0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-${photos.length} * (140px + 8px))); }
+          100% { transform: translateX(-${photos.length * (FRAME_W + GAP)}px); }
         }
       `}</style>
     </div>
@@ -155,8 +158,7 @@ function Collections() {
   const [folderPhotos, setFolderPhotos] = useState([]);
   const [lb, setLb] = useState({ open: false, idx: 0 });
 
-  const loadFolders = () => api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
-  useEffect(() => { loadFolders(); }, []);
+  useEffect(() => { api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {}); }, []);
 
   const currentFolder = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1] : null;
 
