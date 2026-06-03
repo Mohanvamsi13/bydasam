@@ -106,26 +106,28 @@ function About() {
 
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr' }}>
-        <div style={{ background:'#0a0a0a', overflow:'hidden', display:'flex', alignItems:'flex-start', justifyContent:'center' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'2fr 3fr' }}>
+        <div style={{ background:'#0a0a0a', overflow:'hidden', maxHeight:'600px' }}>
           {photo ? (
-            <img src={photo} alt={name} style={{ width:'100%', height:'auto', display:'block', objectFit:'contain' }} />
+            <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }} />
           ) : (
-            <div style={{ width:'100%', minHeight:'400px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width:'100%', height:'400px', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
             </div>
           )}
         </div>
-        <div style={{ padding:'4rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem' }}>{role}</p>
+        <div style={{ padding:'4rem 5rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
+          <p className="about-role">{role}</p>
           <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
-          {bio ? (
-            <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio}</p>
-          ) : (
-            defaultBio.map((line, i) => (
-              <p key={i} style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px', marginBottom:'1rem' }} dangerouslySetInnerHTML={{ __html: line }} />
-            ))
-          )}
+          <div className="about-text">
+            {bio ? (
+              <p>{bio}</p>
+            ) : (
+              defaultBio.map((line, i) => (
+                <p key={i} dangerouslySetInnerHTML={{ __html: line }} />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -249,12 +251,12 @@ function Collections() {
         </div>
       </div>
 
-      <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'0 2.5rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length===0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>All Collections</span>
+      <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'0 2.5rem', marginBottom:'1rem', flexWrap:'wrap' }}>
+        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length===0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>All Collections</span>
         {breadcrumb.map((b, i) => (
           <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.7rem' }}>›</span>
-            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>{b.name}</span>
+            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.8rem' }}>›</span>
+            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>{b.name}</span>
           </span>
         ))}
       </div>
@@ -273,11 +275,11 @@ function Collections() {
               )}
               <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.82))' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
-                  <span style={{ fontSize:'0.65rem', opacity:0.7 }}>📁</span>
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.88rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
+                  <span style={{ fontSize:'0.75rem', opacity:0.7 }}>📁</span>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
                 </div>
                 {getChildren(f._id).length > 0 && (
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.62rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length} albums</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length} albums</p>
                 )}
               </div>
             </div>
@@ -295,7 +297,7 @@ function Collections() {
               />
               {p.title && (
                 <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.7))' }}>
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
                 </div>
               )}
             </div>
@@ -304,8 +306,8 @@ function Collections() {
       )}
 
       {currentChildren.length === 0 && folderPhotos.length === 0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
+        <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
         </div>
       )}
 
@@ -336,7 +338,7 @@ function Contact() {
   const list = socials.length ? socials : defaults;
   return (
     <section id="contact" style={{ borderTop:'1px solid #111' }}>
-      <div style={{ padding:'2.5rem 2.5rem 1.5rem' }}>
+      <div style={{ padding:'2rem 2.5rem 1rem' }}>
         <p className="section-label">Lets Create Something</p>
         <h2 className="contact-big">GET IN TOUCH</h2>
       </div>
@@ -366,8 +368,8 @@ function Booking() {
     finally { setBusy(false); }
   };
   return (
-    <section id="booking" style={{ padding:'3rem 2.5rem', borderTop:'1px solid #111' }}>
-      <div style={{ marginBottom:'2rem' }}>
+    <section id="booking" style={{ padding:'2.5rem 2.5rem 3rem', borderTop:'1px solid #111' }}>
+      <div style={{ marginBottom:'1.5rem' }}>
         <p className="section-label">Reserve Your Date</p>
         <h2 className="section-title">BOOK A SESSION</h2>
       </div>
