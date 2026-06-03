@@ -88,6 +88,36 @@ function Carousel() {
   );
 }
 
+function About() {
+  const [settings, setSettings] = useState({});
+  useEffect(() => { api.get('/settings').then(r => setSettings(r.data)).catch(() => {}); }, []);
+  const name  = settings.aboutName  || 'Madhu Sai Pavan Dasam';
+  const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
+  const bio   = settings.aboutBio   || '';
+  const photo = settings.aboutPhoto || '';
+  const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
+  return (
+    <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr' }}>
+        <div style={{ background:'#0a0a0a', overflow:'hidden', display:'flex', alignItems:'flex-start' }}>
+          {photo ? (
+            <img src={photo} alt={name} style={{ width:'100%', height:'auto', display:'block', objectFit:'contain' }} />
+          ) : (
+            <div style={{ width:'100%', minHeight:'400px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
+            </div>
+          )}
+        </div>
+        <div style={{ padding:'4rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem' }}>{role}</p>
+          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
+          <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Portfolio() {
   const [photos, setPhotos] = useState([]);
   const [lb, setLb] = useState({ open: false, idx: 0 });
@@ -112,7 +142,7 @@ function Portfolio() {
   });
 
   return (
-    <section id="portfolio" style={{ background:'#000' }}>
+    <section id="portfolio" style={{ background:'#000', borderTop:'1px solid #111' }}>
       <div className="section-header">
         <div>
           <p className="section-label">Selected Work</p>
@@ -281,39 +311,6 @@ function Collections() {
   );
 }
 
-function About() {
-  const [settings, setSettings] = useState({});
-  useEffect(() => { api.get('/settings').then(r => setSettings(r.data)).catch(() => {}); }, []);
-  const name  = settings.aboutName  || 'Madhu Sai Pavan Dasam';
-  const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
-  const bio   = settings.aboutBio   || '';
-  const photo = settings.aboutPhoto || '';
-  const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
-  return (
-    <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', minHeight:'60vh' }}>
-        <div style={{ position:'relative', overflow:'hidden', background:'#0a0a0a', maxHeight:'600px' }}>
-          {photo ? (
-            <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
-          ) : (
-            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
-            </div>
-          )}
-        </div>
-        <div style={{ padding:'4rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem' }}>{role}</p>
-          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
-          <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
-          <div style={{ marginTop:'2.5rem' }}>
-            <a href="#booking" className="nav-book-btn" style={{ fontSize:'0.85rem', padding:'0.9rem 2.5rem' }}>Book a Session</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function Contact() {
   const [socials, setSocials] = useState([]);
   useEffect(() => { api.get('/social').then(r => setSocials(r.data)).catch(() => {}); }, []);
@@ -408,9 +405,9 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Carousel />
+      <About />
       <Portfolio />
       <Collections />
-      <About />
       <Contact />
       <Booking />
       <Footer />
