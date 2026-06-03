@@ -56,14 +56,18 @@ function Carousel() {
   const doubled = [...photos, ...photos];
   return (
     <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0' }}>
+      <style>{`
+        @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
+        .c-frame { transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s; }
+        .c-frame:hover { transform: scale(1.18) !important; z-index: 10; position: relative; }
+      `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (
-          <div key={i} style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
+          <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
             <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
           </div>
         ))}
       </div>
-      <style>{`@keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }`}</style>
     </div>
   );
 }
@@ -75,6 +79,7 @@ function About() {
   const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
   const bio   = settings.aboutBio   || '';
   const photo = settings.aboutPhoto || '';
+  const pos   = settings.aboutPhotoPosition || 'center top';
   const defaultBio = [
     `I am <strong>Madhu Sai Pavan Dasam</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.`,
     `Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.`,
@@ -84,17 +89,27 @@ function About() {
   ];
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 3fr' }}>
-        <div style={{ background:'#0a0a0a', overflow:'hidden', maxHeight:'800px' }}>
+      <style>{`
+        .about-grid { display: grid; grid-template-columns: 2fr 3fr; }
+        .about-photo-col { background: #0a0a0a; overflow: hidden; max-height: 800px; }
+        .about-text-col { padding: 4rem 5rem; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #111; }
+        @media (max-width: 768px) {
+          .about-grid { grid-template-columns: 1fr !important; }
+          .about-photo-col { max-height: 60vw !important; }
+          .about-text-col { padding: 2rem 1.5rem !important; border-left: none !important; border-top: 1px solid #111; }
+        }
+      `}</style>
+      <div className="about-grid">
+        <div className="about-photo-col">
           {photo ? (
-            <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }} />
+            <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition: pos, display:'block' }} />
           ) : (
             <div style={{ width:'100%', height:'480px', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
             </div>
           )}
         </div>
-        <div style={{ padding:'4rem 5rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
+        <div className="about-text-col">
           <p className="about-role">{role}</p>
           <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
           <div className="about-text">
@@ -219,7 +234,7 @@ function Collections() {
         ))}
       </div>
       {currentChildren.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px', marginBottom:'3px' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:'3px', padding:'0 3px', marginBottom:'3px' }}>
           {currentChildren.map(f => (
             <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
               {f.coverPhoto ? (
@@ -244,7 +259,7 @@ function Collections() {
         </div>
       )}
       {folderPhotos.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:'3px', padding:'0 3px' }}>
           {folderPhotos.map((p, i) => (
             <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
               <img src={p.url} alt={p.title||''} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s', display:'block' }}

@@ -20,7 +20,7 @@
 .nav.scrolled { background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); border-bottom: 1px solid #111; }
 .nav-brand { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.12em; color: #fff; }
 .nav-links { display: flex; align-items: center; gap: 2.5rem; list-style: none; }
-.nav-links a { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.85); transition: color 0.2s; }
+.nav-links a { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.65); transition: all 0.2s; }
 .nav-links a:hover { color: #fff; }
 .nav-right { display: flex; align-items: center; gap: 1rem; }
 .nav-book-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; letter-spacing: 0.22em; text-transform: uppercase; background: #fff; color: #000; border: none; padding: 0.65rem 1.6rem; transition: opacity 0.2s; }
@@ -50,38 +50,37 @@
 /* ── MARQUEE ────────────────────────────────── */
 .marquee-strip { overflow: hidden; border-top: 1px solid #111; border-bottom: 1px solid #111; background: #000; padding: 0; }
 .marquee-inner { display: flex; gap: 6px; white-space: nowrap; width: max-content; animation: marquee 30s linear infinite; align-items: center; }
-.marquee-strip:hover .marquee-inner { animation-play-state: paused; }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .marquee-item { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; letter-spacing: 0.38em; text-transform: uppercase; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 3rem; padding: 1rem 0; }
 .marquee-dot { width: 3px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 50%; }
 
 /* ── SECTION HEADERS ────────────────────────── */
-.section-header { padding: 2.5rem 2.5rem 1.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+.section-header { padding: 2.5rem 2.5rem 1.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
 .section-label { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 0.4rem; }
-.section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 6vw, 6rem); letter-spacing: 0.04em; color: #fff; }
+.section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem, 6vw, 6rem); letter-spacing: 0.04em; color: #fff; }
 
-/* ── PORTFOLIO ──────────────────────────────── */
+/* ── ABOUT ──────────────────────────────────── */
+.about-role { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 1.5rem; }
+.about-text p { font-size: 1.05rem; font-weight: 300; line-height: 1.95; color: rgba(255,255,255,0.85); margin-bottom: 1rem; }
+.about-text p strong { color: #fff; font-weight: 500; }
+
+/* ── LIGHTBOX ───────────────────────────────── */
 .empty-state { min-height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
 .empty-state p { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
 .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 2rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .lightbox.open { opacity: 1; pointer-events: all; }
 .lightbox img { max-height: 88vh; max-width: 88vw; object-fit: contain; }
-.lb-close { position: absolute; top: 1.5rem; right: 2rem; font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(255,255,255,0.5); background: none; border: none; transition: color 0.2s; }
+.lb-close { position: absolute; top: 1.5rem; right: 2rem; font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(255,255,255,0.5); background: none; border: none; }
 .lb-close:hover { color: #fff; }
-.lb-prev, .lb-next { position: absolute; top: 50%; transform: translateY(-50%); font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); background: none; border: none; padding: 1rem 1.5rem; transition: color 0.2s; }
+.lb-prev, .lb-next { position: absolute; top: 50%; transform: translateY(-50%); font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); background: none; border: none; padding: 1rem 1.5rem; }
 .lb-prev:hover, .lb-next:hover { color: #fff; }
 .lb-prev { left: 0; }
 .lb-next { right: 0; }
 
-/* ── ABOUT ──────────────────────────────────── */
-.about-role { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 1.5rem; }
-.about-text p { font-size: 1.1rem; font-weight: 300; line-height: 1.95; color: rgba(255,255,255,0.85); margin-bottom: 1rem; }
-.about-text p strong { color: #fff; font-weight: 500; }
-
 /* ── CONTACT ────────────────────────────────── */
-.contact-big { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 8vw, 8rem); letter-spacing: 0.03em; color: rgba(255,255,255,0.25); }
+.contact-big { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem, 8vw, 8rem); letter-spacing: 0.03em; color: rgba(255,255,255,0.25); }
 .social-strip { display: flex; flex-wrap: wrap; border-top: 1px solid #111; }
-.social-link { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.85); padding: 1.6rem 3rem; border-right: 1px solid #111; transition: color 0.2s; }
+.social-link { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.85); padding: 1.4rem 3rem; border-right: 1px solid #111; transition: color 0.2s; }
 .social-link:hover { color: #fff; }
 .social-link:last-child { border-right: none; }
 
@@ -157,19 +156,36 @@
 .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px); background: #fff; color: #000; font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; letter-spacing: 0.22em; text-transform: uppercase; padding: 1rem 2.5rem; z-index: 999; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; border-radius: 6px; }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
-/* ── RESPONSIVE ─────────────────────────────── */
+/* ── MOBILE ─────────────────────────────────── */
 @media (max-width: 768px) {
-  .nav { padding: 1.2rem; }
+  .nav { padding: 1rem 1.2rem; }
   .nav-links { display: none; }
   .hamburger { display: flex; }
+  .nav-book-btn { display: none; }
+  .hero { padding: 2rem 1.2rem; }
+  .hero-tagline { font-size: 0.85rem; letter-spacing: 0.2em; }
   .section-header { padding: 2rem 1.2rem 1rem; }
-  .booking-wrap { padding: 0; }
+  .section-title { font-size: clamp(2rem, 8vw, 3.5rem); }
+  .social-link { font-size: 1.1rem; padding: 1.2rem 1.5rem; }
+  .booking-wrap { max-width: 100%; }
   .form-grid { grid-template-columns: 1fr; }
-  .footer { padding: 1.5rem 1.2rem; }
+  .form-group.full { grid-column: 1; }
+  .submit-btn { width: 100%; padding: 1rem 2rem; font-size: 1.2rem; }
+  .footer { padding: 1.5rem 1.2rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
   .admin-side { display: none; }
-  .admin-content { padding: 1.5rem; }
+  .admin-content { padding: 1rem; }
   .stat-grid { grid-template-columns: repeat(2,1fr); }
+  .contact-big { font-size: clamp(2rem, 10vw, 4rem); }
+  section[id="booking"] { padding: 2rem 1.2rem; }
+  section[id="contact"] div[style] { padding: 1.5rem 1.2rem 0.8rem !important; }
 }
+
 @media (max-width: 480px) {
-  .hero-name { font-size: clamp(4rem,20vw,7rem); }
+  .hero-name { font-size: clamp(3.5rem, 18vw, 6rem); }
+  .hero-tagline { font-size: 0.75rem; letter-spacing: 0.15em; }
+  .nav-brand { font-size: 1.5rem; }
+  .section-title { font-size: clamp(1.8rem, 9vw, 3rem); }
+  .about-text p { font-size: 0.95rem; }
+  .form-label { font-size: 0.9rem; }
+  .form-input { font-size: 1rem; }
 }

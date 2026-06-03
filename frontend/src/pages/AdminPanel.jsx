@@ -152,7 +152,7 @@ function HeroTab() {
       <SectionHeader title="Hero" sub="Upload the full-screen background for your homepage" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p style={{ fontSize:'0.9rem', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem', lineHeight:1.7, fontWeight:300 }}>
-          Fills the entire screen behind BYDASAM. Upload a photo for a still background or a video for a cinematic effect. Videos play silently and loop automatically.
+          Fills the entire screen behind BYDASAM. Upload a photo for a still background or a video for a cinematic effect.
         </p>
         {heroMedia && (
           <div style={{ marginBottom:'1.5rem' }}>
@@ -201,10 +201,8 @@ function CarouselTab() {
   const toast = useToast();
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
-
   const load = () => api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
-
   const upload = async e => {
     const files = [...e.target.files];
     if (!files.length) return;
@@ -219,13 +217,11 @@ function CarouselTab() {
     } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
     finally { setBusy(false); }
   };
-
   const del = async publicId => {
     if (!confirm('Remove from carousel?')) return;
     try { await api.delete('/settings/carousel/' + encodeURIComponent(publicId)); toast('Removed'); load(); }
     catch { toast('Error'); }
   };
-
   return (
     <>
       <SectionHeader title="Carousel" sub={`Sliding strip on your homepage — ${photos.length}/20`} />
@@ -267,6 +263,7 @@ function AboutTab() {
   const toast = useToast();
   const [form, setForm] = useState({ aboutName:'Madhu Sai Pavan Dasam', aboutRole:'Photographer · Storyteller · Visual Architect', aboutBio:'' });
   const [aboutPhoto, setAboutPhoto] = useState('');
+  const [position, setPosition] = useState('center top');
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -275,12 +272,20 @@ function AboutTab() {
       if (r.data.aboutName) setForm(f=>({...f,aboutName:r.data.aboutName}));
       if (r.data.aboutRole) setForm(f=>({...f,aboutRole:r.data.aboutRole}));
       if (r.data.aboutBio)  setForm(f=>({...f,aboutBio:r.data.aboutBio}));
+      if (r.data.aboutPhotoPosition) setPosition(r.data.aboutPhotoPosition);
     }).catch(() => {});
   }, []);
 
   const handle = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
+
+  const savePosition = async pos => {
+    setPosition(pos);
+    try { await api.post('/settings', { aboutPhotoPosition: pos }); toast('Position saved!'); }
+    catch { toast('Error'); }
+  };
+
   const save = async () => {
-    try { await api.post('/settings', form); toast('About section saved!'); }
+    try { await api.post('/settings', { ...form, aboutPhotoPosition: position }); toast('About section saved!'); }
     catch { toast('Error saving'); }
   };
 
@@ -297,22 +302,47 @@ function AboutTab() {
     finally { setUploading(false); e.target.value=''; }
   };
 
+  const positions = [
+    { label:'Top Left', value:'left top' },
+    { label:'Top Center', value:'center top' },
+    { label:'Top Right', value:'right top' },
+    { label:'Middle Left', value:'left center' },
+    { label:'Center', value:'center center' },
+    { label:'Middle Right', value:'right center' },
+    { label:'Bottom Left', value:'left bottom' },
+    { label:'Bottom Center', value:'center bottom' },
+    { label:'Bottom Right', value:'right bottom' },
+  ];
+
   return (
     <>
       <SectionHeader title="About" sub="Edit your about section — updates instantly on the website" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
         <p className="a-label" style={{ marginBottom:'1rem' }}>Your Photo</p>
+        <div style={{ display:'flex', gap:'1.5rem', alignItems:'flex-start', flexWrap:'wrap' }}>
+          {aboutPhoto && (
+            <img src={aboutPhoto} alt="About" style={{ width:'120px', height:'150px', objectFit:'cover', objectPosition: position, borderRadius:'6px', opacity:0.85 }} />
+          )}
+          <label className="upload-zone" style={{ flex:1, minWidth:'200px', padding:'1.5rem' }}>
+            <input type="file" accept="image/*" onChange={uploadPhoto} />
+            <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
+            <p>{uploading?'Uploading...':aboutPhoto?'Click to change photo':'Upload your photo'}</p>
+            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed</p>
+          </label>
+        </div>
         {aboutPhoto && (
-          <div style={{ marginBottom:'1.2rem', border:'1px solid #1a1a1a', borderRadius:'8px', overflow:'hidden', maxWidth:'320px' }}>
-            <img src={aboutPhoto} alt="About preview" style={{ width:'100%', height:'auto', display:'block' }} />
+          <div style={{ marginTop:'1.2rem' }}>
+            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Photo focus point — pick where to crop from</p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'4px', maxWidth:'240px' }}>
+              {positions.map(p => (
+                <button key={p.value} onClick={() => savePosition(p.value)}
+                  style={{ padding:'8px 4px', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', textTransform:'uppercase', background: position===p.value ? '#fff' : '#0d0d0d', color: position===p.value ? '#000' : 'rgba(255,255,255,0.35)', border: position===p.value ? '1px solid #fff' : '1px solid #222', borderRadius:'4px', cursor:'pointer', transition:'all 0.2s' }}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
-        <label className="upload-zone" style={{ maxWidth:'320px' }}>
-          <input type="file" accept="image/*" onChange={uploadPhoto} />
-          <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
-          <p>{uploading?'Uploading...':aboutPhoto?'Click to change photo':'Upload your photo'}</p>
-          <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed</p>
-        </label>
       </div>
       <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} /></Row>
       <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} /></Row>
@@ -329,14 +359,11 @@ function PortfolioTab() {
   const [photos, setPhotos] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [busy, setBusy] = useState(false);
-
   const load = () => Promise.all([
     api.get('/photos').then(r => setPhotos(r.data)),
     api.get('/photos?featured=true').then(r => setFeatured(r.data)),
   ]).catch(() => {});
-
   useEffect(() => { load(); }, []);
-
   const upload = async e => {
     const files = [...e.target.files];
     if (!files.length) return;
@@ -351,19 +378,16 @@ function PortfolioTab() {
     } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
     finally { setBusy(false); }
   };
-
   const toggle = async (id, isFeatured) => {
     if (!isFeatured && featured.length>=20) return toast('Maximum 20 portfolio photos!');
     try { await api.patch('/photos/'+id, { featured:!isFeatured }); load(); }
     catch { toast('Error'); }
   };
-
   const del = async id => {
     if (!confirm('Delete this photo?')) return;
     try { await api.delete('/photos/'+id); toast('Deleted'); load(); }
     catch { toast('Error'); }
   };
-
   return (
     <>
       <SectionHeader title="Portfolio" sub={`Your best 20 photos shown on homepage — ${featured.length}/20 selected`} />
@@ -417,7 +441,6 @@ function CollectionsTab() {
     if (!folderId) { setFolderPhotos([]); return; }
     api.get('/photos?folder='+folderId).then(r => setFolderPhotos(r.data)).catch(() => {});
   };
-
   useEffect(() => { loadFolders(); }, []);
   useEffect(() => { loadPhotos(currentFolder?._id); }, [currentFolder]);
 
@@ -425,40 +448,23 @@ function CollectionsTab() {
     if (!parentId) return folders.filter(f => !f.parent);
     return folders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
   };
-
-  const openFolder = folder => {
-    setCurrentFolder(folder);
-    setBreadcrumb(prev => [...prev, folder]);
-    setShowNew(false);
-  };
-
+  const openFolder = folder => { setCurrentFolder(folder); setBreadcrumb(prev => [...prev, folder]); setShowNew(false); };
   const goToCrumb = idx => {
     if (idx===-1) { setCurrentFolder(null); setBreadcrumb([]); setFolderPhotos([]); }
-    else {
-      const target = breadcrumb[idx];
-      setCurrentFolder(target);
-      setBreadcrumb(breadcrumb.slice(0, idx+1));
-      loadPhotos(target._id);
-    }
+    else { const target = breadcrumb[idx]; setCurrentFolder(target); setBreadcrumb(breadcrumb.slice(0, idx+1)); loadPhotos(target._id); }
     setShowNew(false);
   };
-
   const create = async () => {
     if (!newName.trim()) return toast('Enter a collection name');
-    try {
-      await api.post('/categories', { name:newName.trim(), parent:currentFolder?._id||null });
-      toast('Collection created!');
-      setNewName(''); setShowNew(false); loadFolders();
-    } catch(e) { toast(e.response?.data?.error||'Error'); }
+    try { await api.post('/categories', { name:newName.trim(), parent:currentFolder?._id||null }); toast('Collection created!'); setNewName(''); setShowNew(false); loadFolders(); }
+    catch(e) { toast(e.response?.data?.error||'Error'); }
   };
-
   const del = async (id, e) => {
     e.stopPropagation();
     if (!confirm('Delete this collection?')) return;
     try { await api.delete('/categories/'+id); toast('Deleted'); loadFolders(); }
     catch { toast('Error'); }
   };
-
   const uploadToFolder = async (e, folderId) => {
     const files = [...e.target.files];
     if (!files.length) return;
@@ -466,20 +472,15 @@ function CollectionsTab() {
     const fd = new FormData();
     files.forEach(f => fd.append('photos', f));
     fd.append('folder', folderId);
-    try {
-      await api.post('/photos', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast(files.length+' photo(s) uploaded!');
-      e.target.value=''; loadPhotos(folderId); loadFolders();
-    } catch(err) { toast(err.response?.data?.error||'Upload failed'); }
+    try { await api.post('/photos', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); toast(files.length+' photo(s) uploaded!'); e.target.value=''; loadPhotos(folderId); loadFolders(); }
+    catch(err) { toast(err.response?.data?.error||'Upload failed'); }
     finally { setBusy(false); }
   };
-
   const delPhoto = async id => {
     if (!confirm('Delete photo?')) return;
     try { await api.delete('/photos/'+id); toast('Deleted'); loadPhotos(currentFolder?._id); }
     catch { toast('Error'); }
   };
-
   const currentChildren = getChildren(currentFolder?._id);
 
   return (
@@ -494,7 +495,6 @@ function CollectionsTab() {
           </span>
         ))}
       </div>
-
       {currentFolder && (
         <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
           <p className="a-label" style={{ marginBottom:'1rem' }}>Upload photos to {currentFolder.name}</p>
@@ -524,7 +524,6 @@ function CollectionsTab() {
           )}
         </div>
       )}
-
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:'10px', marginBottom:'1.5rem' }}>
         {currentChildren.map(f => (
           <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer', transition:'border-color 0.2s' }}
@@ -551,7 +550,6 @@ function CollectionsTab() {
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Collection</p>
         </div>
       </div>
-
       {showNew && (
         <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
           <p className="a-label" style={{ marginBottom:'1rem' }}>New collection {currentFolder?`inside ${currentFolder.name}`:'at root level'}</p>
@@ -562,7 +560,6 @@ function CollectionsTab() {
           </div>
         </div>
       )}
-
       {currentChildren.length===0 && !showNew && !currentFolder && (
         <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No collections yet — click + New Collection to start</p>
@@ -583,14 +580,8 @@ function SocialTab() {
     try { await api.post('/social', form); toast('Added'); setForm({name:'',url:''}); load(); }
     catch(e) { toast(e.response?.data?.error||'Error'); }
   };
-  const del = async id => {
-    try { await api.delete('/social/'+id); load(); }
-    catch { toast('Error'); }
-  };
-  const update = async (id, url) => {
-    try { await api.patch('/social/'+id, { url }); toast('Saved'); }
-    catch { toast('Error'); }
-  };
+  const del = async id => { try { await api.delete('/social/'+id); load(); } catch { toast('Error'); } };
+  const update = async (id, url) => { try { await api.patch('/social/'+id, { url }); toast('Saved'); } catch { toast('Error'); } };
   return (
     <>
       <SectionHeader title="Social Links" sub="Manage your contact and social media links" />
@@ -618,15 +609,8 @@ function BookingsTab() {
   const [bookings, setBookings] = useState([]);
   const load = () => api.get('/bookings').then(r => setBookings(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
-  const patch = async (id, status) => {
-    try { await api.patch('/bookings/'+id, { status }); load(); toast('Updated'); }
-    catch { toast('Error'); }
-  };
-  const del = async id => {
-    if (!confirm('Delete?')) return;
-    try { await api.delete('/bookings/'+id); load(); }
-    catch { toast('Error'); }
-  };
+  const patch = async (id, status) => { try { await api.patch('/bookings/'+id, { status }); load(); toast('Updated'); } catch { toast('Error'); } };
+  const del = async id => { if (!confirm('Delete?')) return; try { await api.delete('/bookings/'+id); load(); } catch { toast('Error'); } };
   const pillClass = s => s==='confirmed'?'status-pill pill-confirmed':s==='cancelled'?'status-pill pill-cancelled':'status-pill pill-new';
   return (
     <>
@@ -668,38 +652,28 @@ function SecurityTab() {
   const [code, setCode] = useState('');
   const [mfaOn, setMfaOn] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const setupMfa = async () => {
     setLoading(true);
-    try {
-      const { data } = await api.post('/auth/mfa/setup');
-      setQrCode(data.qrCode); setSecret(data.secret);
-      toast('Scan the QR code with Google Authenticator');
-    } catch { toast('Error setting up MFA'); }
+    try { const { data } = await api.post('/auth/mfa/setup'); setQrCode(data.qrCode); setSecret(data.secret); toast('Scan the QR code with Google Authenticator'); }
+    catch { toast('Error setting up MFA'); }
     finally { setLoading(false); }
   };
-
   const verifyMfa = async () => {
     if (code.length!==6) return toast('Enter a 6-digit code');
-    try {
-      await api.post('/auth/mfa/verify', { token:code });
-      toast('MFA enabled!');
-      setMfaOn(true); setQrCode(''); setCode('');
-    } catch { toast('Invalid code. Try again.'); }
+    try { await api.post('/auth/mfa/verify', { token:code }); toast('MFA enabled!'); setMfaOn(true); setQrCode(''); setCode(''); }
+    catch { toast('Invalid code. Try again.'); }
   };
-
   const disableMfa = async () => {
     if (!confirm('Disable MFA?')) return;
     try { await api.post('/auth/mfa/disable'); toast('MFA disabled.'); setMfaOn(false); setQrCode(''); setSecret(''); }
     catch { toast('Error'); }
   };
-
   return (
     <>
       <SectionHeader title="Security" sub="Set up two-factor authentication for your admin login" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p style={{ fontSize:'0.95rem', color:'rgba(255,255,255,0.5)', lineHeight:1.8, marginBottom:'1.5rem', fontWeight:300 }}>
-          After entering your password you will be asked for a 6-digit code from Google Authenticator. This prevents anyone from logging in even if they know your password.
+          After entering your password you will be asked for a 6-digit code from Google Authenticator.
         </p>
         {!mfaOn&&!qrCode&&<button className="a-btn" onClick={setupMfa} disabled={loading}>{loading?'Setting up...':'Setup Google Authenticator'}</button>}
         {qrCode&&(
