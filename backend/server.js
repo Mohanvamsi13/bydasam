@@ -5,6 +5,8 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: (origin, cb) => {
     const allowed = [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'];
