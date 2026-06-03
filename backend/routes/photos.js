@@ -16,15 +16,15 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 },
 });
 
-const compressAndUpload = async (buffer, filename) => {
+const compressAndUpload = async (buffer) => {
   const compressed = await sharp(buffer)
     .resize({ width: 2400, withoutEnlargement: true })
-    .jpeg({ quality: 85, progressive: true })
+    .jpeg({ quality: 82, progressive: true })
     .toBuffer();
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'bydasam', resource_type: 'image', fetch_format: 'auto' },
+      { folder: 'bydasam', resource_type: 'image' },
       (err, result) => { if (err) reject(err); else resolve(result); }
     );
     stream.end(compressed);
@@ -43,21 +43,25 @@ router.get('/', async (req, res) => {
 
 router.post('/', protect, upload.array('photos', 100), async (req, res) => {
   try {
-    const saved = await Promise.all(
-      req.files.map(async (f, i) => {
-        const result = await compressAndUpload(f.buffer, f.originalname);
-        return Photo.create({
-          title:    req.body.title || '',
-          url:      result.secure_url,
-          publicId: result.public_id,
-          folder:   req.body.folder || null,
-          featured: false,
-          order:    i,
-        });
-      })
-    );
+    const saved = [];
+    for (let i = 0; i < req.files.length; i++) {
+      const f = req.files[i];
+      const result = await compressAndUpload(f.buffer);
+      const photo = await Photo.create({
+        title:    req.body.title || '',
+        url:      result.secure_url,
+        publicId: result.public_id,
+        folder:   req.body.folder || null,
+        featured: false,
+        order:    i,
+      });
+      saved.push(photo);
+    }
     res.status(201).json(saved);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Upload error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 router.patch('/:id', protect, async (req, res) => {
