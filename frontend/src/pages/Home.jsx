@@ -40,50 +40,30 @@ function Carousel() {
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
-
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
-
   if (photos.length === 0) {
     return (
       <div className="marquee-strip">
         <div className="marquee-inner">
           {[...items,...items].map((item, i) => (
-            <span key={i} className="marquee-item">
-              {item}{i < items.length*2-1 && <span className="marquee-dot" />}
-            </span>
+            <span key={i} className="marquee-item">{item}{i < items.length*2-1 && <span className="marquee-dot" />}</span>
           ))}
         </div>
       </div>
     );
   }
-
-  const FRAME_W = 180;
-  const FRAME_H = 140;
-  const GAP = 8;
+  const FRAME_W = 180, FRAME_H = 140, GAP = 8;
   const doubled = [...photos, ...photos];
-  const duration = photos.length * 4;
-
   return (
     <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0' }}>
-      <div style={{
-        display:'flex',
-        gap:`${GAP}px`,
-        height:`${FRAME_H}px`,
-        width:`${doubled.length * (FRAME_W + GAP)}px`,
-        animation:`carouselScroll ${duration}s linear infinite`,
-      }}>
+      <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (
           <div key={i} style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
             <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
           </div>
         ))}
       </div>
-      <style>{`
-        @keyframes carouselScroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-${photos.length * (FRAME_W + GAP)}px); }
-        }
-      `}</style>
+      <style>{`@keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }`}</style>
     </div>
   );
 }
@@ -95,7 +75,6 @@ function About() {
   const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
   const bio   = settings.aboutBio   || '';
   const photo = settings.aboutPhoto || '';
-
   const defaultBio = [
     `I am <strong>Madhu Sai Pavan Dasam</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.`,
     `Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.`,
@@ -103,15 +82,14 @@ function About() {
     `My unique combination of artistic training and business acumen means I do not just understand photography — <strong>I understand you, your brand, and what you need.</strong>`,
     `I do not just photograph your moments — <strong>I preserve them forever.</strong>`,
   ];
-
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
       <div style={{ display:'grid', gridTemplateColumns:'2fr 3fr' }}>
-        <div style={{ background:'#0a0a0a', overflow:'hidden', maxHeight:'600px' }}>
+        <div style={{ background:'#0a0a0a', overflow:'hidden', maxHeight:'720px' }}>
           {photo ? (
             <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }} />
           ) : (
-            <div style={{ width:'100%', height:'400px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width:'100%', height:'480px', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
             </div>
           )}
@@ -120,13 +98,7 @@ function About() {
           <p className="about-role">{role}</p>
           <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
           <div className="about-text">
-            {bio ? (
-              <p>{bio}</p>
-            ) : (
-              defaultBio.map((line, i) => (
-                <p key={i} dangerouslySetInnerHTML={{ __html: line }} />
-              ))
-            )}
+            {bio ? <p>{bio}</p> : defaultBio.map((line, i) => <p key={i} dangerouslySetInnerHTML={{ __html: line }} />)}
           </div>
         </div>
       </div>
@@ -137,7 +109,6 @@ function About() {
 function Portfolio() {
   const [photos, setPhotos] = useState([]);
   const [lb, setLb] = useState({ open: false, idx: 0 });
-
   useEffect(() => {
     api.get('/photos').then(r => {
       const all = r.data;
@@ -145,18 +116,15 @@ function Portfolio() {
       setPhotos(featured.length > 0 ? featured : all);
     }).catch(() => {});
   }, []);
-
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
   const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + photos.length) % photos.length }));
   const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % photos.length }));
-
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowLeft') prev(); if (e.key === 'ArrowRight') next(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
   });
-
   return (
     <section id="portfolio" style={{ background:'#000', borderTop:'1px solid #111' }}>
       <div className="section-header">
@@ -203,21 +171,16 @@ function Collections() {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [folderPhotos, setFolderPhotos] = useState([]);
   const [lb, setLb] = useState({ open: false, idx: 0 });
-
   useEffect(() => { api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {}); }, []);
-
   const currentFolder = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1] : null;
-
   const getChildren = parentId => {
     if (!parentId) return folders.filter(f => !f.parent);
     return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
   };
-
   const openFolder = folder => {
     setBreadcrumb(prev => [...prev, folder]);
     api.get('/photos?folder=' + folder._id).then(r => setFolderPhotos(r.data)).catch(() => {});
   };
-
   const goToCrumb = idx => {
     if (idx === -1) { setBreadcrumb([]); setFolderPhotos([]); }
     else {
@@ -226,22 +189,18 @@ function Collections() {
       api.get('/photos?folder=' + newCrumb[newCrumb.length - 1]._id).then(r => setFolderPhotos(r.data)).catch(() => {});
     }
   };
-
   const openLb = idx => setLb({ open: true, idx });
   const closeLb = () => setLb(l => ({ ...l, open: false }));
   const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + folderPhotos.length) % folderPhotos.length }));
   const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % folderPhotos.length }));
-
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowLeft') prev(); if (e.key === 'ArrowRight') next(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
   });
-
   const rootFolders = getChildren(null);
   if (rootFolders.length === 0) return null;
   const currentChildren = currentFolder ? getChildren(currentFolder._id) : rootFolders;
-
   return (
     <section id="collections" style={{ background:'#000', borderTop:'1px solid #111', paddingBottom:'2rem' }}>
       <div className="section-header">
@@ -250,17 +209,15 @@ function Collections() {
           <h2 className="section-title">COLLECTIONS</h2>
         </div>
       </div>
-
       <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'0 2.5rem', marginBottom:'1rem', flexWrap:'wrap' }}>
-        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length===0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>All Collections</span>
+        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: breadcrumb.length===0 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>All Collections</span>
         {breadcrumb.map((b, i) => (
           <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.8rem' }}>›</span>
-            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>{b.name}</span>
+            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.9rem' }}>›</span>
+            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.15em', textTransform:'uppercase', color: i===breadcrumb.length-1 ? '#fff' : 'rgba(255,255,255,0.35)', cursor:'pointer' }}>{b.name}</span>
           </span>
         ))}
       </div>
-
       {currentChildren.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px', marginBottom:'3px' }}>
           {currentChildren.map(f => (
@@ -275,18 +232,17 @@ function Collections() {
               )}
               <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.82))' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
-                  <span style={{ fontSize:'0.75rem', opacity:0.7 }}>📁</span>
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
+                  <span style={{ fontSize:'0.8rem', opacity:0.7 }}>📁</span>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
                 </div>
                 {getChildren(f._id).length > 0 && (
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length} albums</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length} albums</p>
                 )}
               </div>
             </div>
           ))}
         </div>
       )}
-
       {folderPhotos.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px' }}>
           {folderPhotos.map((p, i) => (
@@ -297,20 +253,18 @@ function Collections() {
               />
               {p.title && (
                 <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.7))' }}>
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{p.title}</p>
                 </div>
               )}
             </div>
           ))}
         </div>
       )}
-
       {currentChildren.length === 0 && folderPhotos.length === 0 && (
         <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
         </div>
       )}
-
       <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
         {lb.open && folderPhotos[lb.idx] && (
           <>
