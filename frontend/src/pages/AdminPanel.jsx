@@ -7,11 +7,11 @@ import { useToast } from '../hooks/useToast';
 const TABS = [
   { id:'Hero',        icon:'🎬' },
   { id:'Carousel',    icon:'🎠' },
+  { id:'About',       icon:'👤' },
   { id:'Portfolio',   icon:'🖼' },
   { id:'Collections', icon:'📂' },
-  { id:'Bookings',    icon:'📅' },
-  { id:'About',       icon:'👤' },
   { id:'Social',      icon:'🔗' },
+  { id:'Bookings',    icon:'📅' },
   { id:'Security',    icon:'🔒' },
 ];
 
@@ -68,11 +68,11 @@ export default function AdminPanel() {
           </div>
           {tab==='Hero'        && <HeroTab />}
           {tab==='Carousel'    && <CarouselTab />}
+          {tab==='About'       && <AboutTab />}
           {tab==='Portfolio'   && <PortfolioTab />}
           {tab==='Collections' && <CollectionsTab />}
-          {tab==='Bookings'    && <BookingsTab />}
-          {tab==='About'       && <AboutTab />}
           {tab==='Social'      && <SocialTab />}
+          {tab==='Bookings'    && <BookingsTab />}
           {tab==='Security'    && <SecurityTab />}
         </div>
       </div>
@@ -99,7 +99,7 @@ function HeroTab() {
   const toast = useToast();
   const [heroMedia, setHeroMedia] = useState('');
   const [heroMediaType, setHeroMediaType] = useState('');
-  const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -120,14 +120,14 @@ function HeroTab() {
         window.URL.revokeObjectURL(video.src);
         if (video.duration > 5000) { toast('Video must be maximum 5000 seconds!'); e.target.value=''; return; }
         if (video.duration < 20) { toast('Video must be at least 20 seconds!'); e.target.value=''; return; }
-        await doHeroUpload(file, e);
+        await doUpload(file, e);
       };
       video.src = URL.createObjectURL(file);
-    } else { await doHeroUpload(file, e); }
+    } else { await doUpload(file, e); }
   };
 
-  const doHeroUpload = async (file, e) => {
-    setUploadingHero(true); setProgress(0);
+  const doUpload = async (file, e) => {
+    setUploading(true); setProgress(0);
     const fd = new FormData();
     fd.append('media', file);
     try {
@@ -138,7 +138,7 @@ function HeroTab() {
       setHeroMedia(data.url); setHeroMediaType(data.type);
       toast('Hero media updated!');
     } catch { toast('Upload failed'); }
-    finally { setUploadingHero(false); setProgress(0); e.target.value=''; }
+    finally { setUploading(false); setProgress(0); e.target.value=''; }
   };
 
   const remove = async () => {
@@ -165,7 +165,7 @@ function HeroTab() {
             <div style={{ marginTop:'0.8rem' }}><button className="a-btn a-btn-red a-btn-sm" onClick={remove}>Remove</button></div>
           </div>
         )}
-        {uploadingHero && progress > 0 && (
+        {uploading && progress > 0 && (
           <div style={{ marginBottom:'1.2rem' }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px' }}>
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>Uploading & compressing...</p>
@@ -263,6 +263,67 @@ function CarouselTab() {
   );
 }
 
+function AboutTab() {
+  const toast = useToast();
+  const [form, setForm] = useState({ aboutName:'Madhu Sai Pavan Dasam', aboutRole:'Photographer · Storyteller · Visual Architect', aboutBio:'' });
+  const [aboutPhoto, setAboutPhoto] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    api.get('/settings').then(r => {
+      if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
+      if (r.data.aboutName) setForm(f=>({...f,aboutName:r.data.aboutName}));
+      if (r.data.aboutRole) setForm(f=>({...f,aboutRole:r.data.aboutRole}));
+      if (r.data.aboutBio)  setForm(f=>({...f,aboutBio:r.data.aboutBio}));
+    }).catch(() => {});
+  }, []);
+
+  const handle = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
+  const save = async () => {
+    try { await api.post('/settings', form); toast('About section saved!'); }
+    catch { toast('Error saving'); }
+  };
+
+  const uploadPhoto = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('photo', file);
+    try {
+      const { data } = await api.post('/settings/about-photo', fd, { headers:{'Content-Type':'multipart/form-data'} });
+      setAboutPhoto(data.url); toast('Photo updated!');
+    } catch { toast('Upload failed'); }
+    finally { setUploading(false); e.target.value=''; }
+  };
+
+  return (
+    <>
+      <SectionHeader title="About" sub="Edit your about section — updates instantly on the website" />
+      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
+        <p className="a-label" style={{ marginBottom:'1rem' }}>Your Photo</p>
+        {aboutPhoto && (
+          <div style={{ marginBottom:'1.2rem', border:'1px solid #1a1a1a', borderRadius:'8px', overflow:'hidden', maxWidth:'320px' }}>
+            <img src={aboutPhoto} alt="About preview" style={{ width:'100%', height:'auto', display:'block' }} />
+          </div>
+        )}
+        <label className="upload-zone" style={{ maxWidth:'320px' }}>
+          <input type="file" accept="image/*" onChange={uploadPhoto} />
+          <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
+          <p>{uploading?'Uploading...':aboutPhoto?'Click to change photo':'Upload your photo'}</p>
+          <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed</p>
+        </label>
+      </div>
+      <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} /></Row>
+      <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} /></Row>
+      <Row label="Your Bio">
+        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'200px' }} placeholder="Write your bio here..." />
+      </Row>
+      <button className="a-btn" onClick={save}>Save About Section</button>
+    </>
+  );
+}
+
 function PortfolioTab() {
   const toast = useToast();
   const [photos, setPhotos] = useState([]);
@@ -285,7 +346,7 @@ function PortfolioTab() {
     try {
       const saved = await api.post('/photos', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       await Promise.all(saved.data.map(p => api.patch('/photos/'+p._id, { featured:true })));
-      toast(files.length+' photo(s) uploaded to portfolio!');
+      toast(files.length+' photo(s) uploaded!');
       e.target.value=''; load();
     } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
     finally { setBusy(false); }
@@ -317,8 +378,8 @@ function PortfolioTab() {
       <label className="upload-zone" style={{ marginBottom:'1.5rem' }}>
         <input type="file" accept="image/*" multiple onChange={upload} />
         <div className="upload-icon">↑</div>
-        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy?'Uploading & compressing...':'Upload portfolio photos directly'}</p>
-        <p>Photos auto-added to portfolio · Click to feature/unfeature</p>
+        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy?'Uploading & compressing...':'Upload portfolio photos'}</p>
+        <p>Photos auto-added · Click to feature/unfeature</p>
       </label>
       <p className="a-label" style={{ marginBottom:'0.8rem' }}>Click any photo to add/remove from portfolio</p>
       <div className="thumb-grid">
@@ -424,7 +485,6 @@ function CollectionsTab() {
   return (
     <>
       <SectionHeader title="Collections" sub="Create collections and upload photos — displayed on website with cover photos" />
-
       <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a', flexWrap:'wrap' }}>
         <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color:currentFolder?'rgba(255,255,255,0.4)':'#fff', cursor:'pointer' }}>All Collections</span>
         {breadcrumb.map((b, i) => (
@@ -512,6 +572,47 @@ function CollectionsTab() {
   );
 }
 
+function SocialTab() {
+  const toast = useToast();
+  const [socials, setSocials] = useState([]);
+  const [form, setForm] = useState({ name:'', url:'' });
+  const load = () => api.get('/social').then(r => setSocials(r.data)).catch(() => {});
+  useEffect(() => { load(); }, []);
+  const add = async () => {
+    if (!form.name||!form.url) return toast('Name and URL required');
+    try { await api.post('/social', form); toast('Added'); setForm({name:'',url:''}); load(); }
+    catch(e) { toast(e.response?.data?.error||'Error'); }
+  };
+  const del = async id => {
+    try { await api.delete('/social/'+id); load(); }
+    catch { toast('Error'); }
+  };
+  const update = async (id, url) => {
+    try { await api.patch('/social/'+id, { url }); toast('Saved'); }
+    catch { toast('Error'); }
+  };
+  return (
+    <>
+      <SectionHeader title="Social Links" sub="Manage your contact and social media links" />
+      {socials.map(s => (
+        <div key={s._id} className="list-row">
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', minWidth:'100px', color:'rgba(255,255,255,0.5)' }}>{s.name}</span>
+          <input defaultValue={s.url} onBlur={e=>update(s._id,e.target.value)} style={{ flex:1, background:'transparent', border:'none', borderBottom:'1px solid #1a1a1a', color:'rgba(255,255,255,0.6)', fontFamily:"'Barlow',sans-serif", fontSize:'0.9rem', padding:'0.4rem 0', outline:'none' }} />
+          <button className="a-btn a-btn-red a-btn-sm" onClick={()=>del(s._id)}>Remove</button>
+        </div>
+      ))}
+      <div style={{ marginTop:'2rem', paddingTop:'1.5rem', borderTop:'1px solid #111' }}>
+        <p className="a-label" style={{ marginBottom:'1rem' }}>Add New Platform</p>
+        <TwoCol>
+          <Row label="Platform Name"><input className="a-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Instagram" /></Row>
+          <Row label="URL"><input className="a-input" value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))} placeholder="https://instagram.com/@handle" /></Row>
+        </TwoCol>
+        <button className="a-btn" onClick={add}>+ Add Platform</button>
+      </div>
+    </>
+  );
+}
+
 function BookingsTab() {
   const toast = useToast();
   const [bookings, setBookings] = useState([]);
@@ -556,104 +657,6 @@ function BookingsTab() {
           </div>
         </div>
       ))}
-    </>
-  );
-}
-
-function AboutTab() {
-  const toast = useToast();
-  const [form, setForm] = useState({ aboutName:'Madhu Sai Pavan Dasam', aboutRole:'Photographer · Storyteller · Visual Architect', aboutBio:'' });
-  const [aboutPhoto, setAboutPhoto] = useState('');
-  const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    api.get('/settings').then(r => {
-      if (r.data.aboutPhoto) setAboutPhoto(r.data.aboutPhoto);
-      if (r.data.aboutName) setForm(f=>({...f,aboutName:r.data.aboutName}));
-      if (r.data.aboutRole) setForm(f=>({...f,aboutRole:r.data.aboutRole}));
-      if (r.data.aboutBio)  setForm(f=>({...f,aboutBio:r.data.aboutBio}));
-    }).catch(() => {});
-  }, []);
-
-  const handle = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
-  const save = async () => {
-    try { await api.post('/settings', form); toast('About section saved!'); }
-    catch { toast('Error saving'); }
-  };
-
-  const uploadPhoto = async e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('photo', file);
-    try {
-      const { data } = await api.post('/settings/about-photo', fd, { headers:{'Content-Type':'multipart/form-data'} });
-      setAboutPhoto(data.url); toast('Photo updated!');
-    } catch { toast('Upload failed'); }
-    finally { setUploading(false); e.target.value=''; }
-  };
-
-  return (
-    <>
-      <SectionHeader title="About" sub="Edit your about section — updates instantly on the website" />
-      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
-        <p className="a-label" style={{ marginBottom:'1rem' }}>Your Photo</p>
-        <div style={{ display:'flex', gap:'1.5rem', alignItems:'flex-start', flexWrap:'wrap' }}>
-          {aboutPhoto&&<img src={aboutPhoto} alt="About" style={{ width:'100px', height:'130px', objectFit:'cover', borderRadius:'6px', opacity:0.85 }} />}
-          <label className="upload-zone" style={{ flex:1, minWidth:'200px', padding:'1.5rem' }}>
-            <input type="file" accept="image/*" onChange={uploadPhoto} />
-            <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
-            <p>{uploading?'Uploading...':aboutPhoto?'Click to change photo':'Upload your photo'}</p>
-            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed</p>
-          </label>
-        </div>
-      </div>
-      <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} /></Row>
-      <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} /></Row>
-      <Row label="Your Bio"><textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'200px' }} placeholder="Write your bio here..." /></Row>
-      <button className="a-btn" onClick={save}>Save About Section</button>
-    </>
-  );
-}
-
-function SocialTab() {
-  const toast = useToast();
-  const [socials, setSocials] = useState([]);
-  const [form, setForm] = useState({ name:'', url:'' });
-  const load = () => api.get('/social').then(r => setSocials(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
-  const add = async () => {
-    if (!form.name||!form.url) return toast('Name and URL required');
-    try { await api.post('/social', form); toast('Added'); setForm({name:'',url:''}); load(); }
-    catch(e) { toast(e.response?.data?.error||'Error'); }
-  };
-  const del = async id => {
-    try { await api.delete('/social/'+id); load(); }
-    catch { toast('Error'); }
-  };
-  const update = async (id, url) => {
-    try { await api.patch('/social/'+id, { url }); toast('Saved'); }
-    catch { toast('Error'); }
-  };
-  return (
-    <>
-      <SectionHeader title="Social Links" sub="Manage your social media and contact links" />
-      {socials.map(s => (
-        <div key={s._id} className="list-row">
-          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', minWidth:'100px', color:'rgba(255,255,255,0.5)' }}>{s.name}</span>
-          <input defaultValue={s.url} onBlur={e=>update(s._id,e.target.value)} style={{ flex:1, background:'transparent', border:'none', borderBottom:'1px solid #1a1a1a', color:'rgba(255,255,255,0.6)', fontFamily:"'Barlow',sans-serif", fontSize:'0.9rem', padding:'0.4rem 0', outline:'none' }} />
-          <button className="a-btn a-btn-red a-btn-sm" onClick={()=>del(s._id)}>Remove</button>
-        </div>
-      ))}
-      <div style={{ marginTop:'2rem', paddingTop:'1.5rem', borderTop:'1px solid #111' }}>
-        <p className="a-label" style={{ marginBottom:'1rem' }}>Add New Platform</p>
-        <TwoCol>
-          <Row label="Platform Name"><input className="a-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Instagram" /></Row>
-          <Row label="URL"><input className="a-input" value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))} placeholder="https://instagram.com/@handle" /></Row>
-        </TwoCol>
-        <button className="a-btn" onClick={add}>+ Add Platform</button>
-      </div>
     </>
   );
 }
