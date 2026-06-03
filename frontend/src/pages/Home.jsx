@@ -55,10 +55,10 @@ function Carousel() {
   const FRAME_W = 180, FRAME_H = 140, GAP = 8;
   const doubled = [...photos, ...photos];
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0', marginBottom:'96px' }}>
       <style>{`
         @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
-        .c-frame { transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s; }
+        .c-frame { transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
         .c-frame:hover { transform: scale(1.18) !important; z-index: 10; position: relative; }
       `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
