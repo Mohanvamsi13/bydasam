@@ -1,10 +1,10 @@
 const router = require('express').Router();
 const { protect } = require('../middleware/auth');
-const { Folder } = require('../models');
+const { Folder, Photo } = require('../models');
 
 router.get('/', async (req, res) => {
   try {
-    const folders = await Folder.find().sort({ order: 1, createdAt: 1 });
+    const folders = await Folder.find().sort({ order:1, createdAt:1 });
     const buildTree = (parentId = null) => {
       return folders
         .filter(f => String(f.parent) === String(parentId) || (!f.parent && !parentId))
@@ -17,7 +17,15 @@ router.get('/', async (req, res) => {
 router.get('/flat', async (req, res) => {
   try {
     const folders = await Folder.find().populate('parent','name').sort({ order:1 });
-    res.json(folders);
+    const foldersWithCovers = await Promise.all(folders.map(async f => {
+      const obj = f.toObject();
+      if (!obj.coverPhoto) {
+        const firstPhoto = await Photo.findOne({ folder: f._id }).sort({ createdAt: 1 });
+        if (firstPhoto) obj.coverPhoto = firstPhoto.url;
+      }
+      return obj;
+    }));
+    res.json(foldersWithCovers);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

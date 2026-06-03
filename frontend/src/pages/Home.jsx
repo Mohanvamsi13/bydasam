@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -58,14 +58,15 @@ function Carousel() {
   }
 
   const doubled = [...photos, ...photos];
+  const duration = photos.length * 4;
 
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'28vw', maxHeight:'320px', minHeight:'160px' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'22vw', maxHeight:'240px', minHeight:'120px' }}>
       <div style={{
         display:'flex',
         height:'100%',
         width:`${doubled.length * 100}%`,
-        animation:`carouselScroll ${photos.length * 3}s linear infinite`,
+        animation:`carouselScroll ${duration}s linear infinite`,
       }}>
         {doubled.map((p, i) => (
           <div key={i} style={{ width:`${100/doubled.length}%`, height:'100%', flexShrink:0 }}>
@@ -149,32 +150,19 @@ function Portfolio() {
 
 function Collections() {
   const [folders, setFolders] = useState([]);
-  const [photos, setPhotos] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [folderPhotos, setFolderPhotos] = useState([]);
   const [lb, setLb] = useState({ open: false, idx: 0 });
 
-  useEffect(() => {
-    api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
-    api.get('/photos').then(r => setPhotos(r.data)).catch(() => {});
-  }, []);
+  const loadFolders = () => api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
+
+  useEffect(() => { loadFolders(); }, []);
 
   const currentFolder = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1] : null;
 
   const getChildren = parentId => {
     if (!parentId) return folders.filter(f => !f.parent);
     return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
-  };
-
-  const getCover = folderId => {
-    const direct = photos.find(p => String(p.folder?._id || p.folder) === String(folderId));
-    if (direct) return direct.url;
-    const children = getChildren(folderId);
-    for (const child of children) {
-      const cover = getCover(child._id);
-      if (cover) return cover;
-    }
-    return null;
   };
 
   const openFolder = folder => {
@@ -227,29 +215,27 @@ function Collections() {
 
       {currentChildren.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'3px', padding:'0 3px', marginBottom:'3px' }}>
-          {currentChildren.map(f => {
-            const cover = getCover(f._id);
-            const subCount = getChildren(f._id).length;
-            return (
-              <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
-                {cover ? (
-                  <img src={cover} alt={f.name} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s', display:'block' }}
-                    onMouseEnter={e => e.target.style.transform='scale(1.05)'}
-                    onMouseLeave={e => e.target.style.transform='scale(1)'}
-                  />
-                ) : (
-                  <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#181818,#0d0d0d)' }} />
-                )}
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.82))' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
-                    <span style={{ fontSize:'0.65rem', opacity:0.7 }}>📁</span>
-                    <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.88rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
-                  </div>
-                  {subCount > 0 && <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.62rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{subCount} albums</p>}
+          {currentChildren.map(f => (
+            <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
+              {f.coverPhoto ? (
+                <img src={f.coverPhoto} alt={f.name} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.6s', display:'block' }}
+                  onMouseEnter={e => e.target.style.transform='scale(1.05)'}
+                  onMouseLeave={e => e.target.style.transform='scale(1)'}
+                />
+              ) : (
+                <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#181818,#0d0d0d)' }} />
+              )}
+              <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0.8rem 1rem', background:'linear-gradient(transparent,rgba(0,0,0,0.82))' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+                  <span style={{ fontSize:'0.65rem', opacity:0.7 }}>📁</span>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.88rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff' }}>{f.name}</p>
                 </div>
+                {getChildren(f._id).length > 0 && (
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.62rem', letterSpacing:'0.12em', color:'rgba(255,255,255,0.4)', marginTop:'2px' }}>{getChildren(f._id).length} albums</p>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -303,21 +289,21 @@ function About() {
   const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', minHeight:'80vh' }}>
-        <div style={{ position:'relative', overflow:'hidden', background:'#0a0a0a' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', minHeight:'60vh' }}>
+        <div style={{ position:'relative', overflow:'hidden', background:'#0a0a0a', maxHeight:'600px' }}>
           {photo ? (
             <img src={photo} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
           ) : (
             <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(4rem,10vw,9rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
+              <span style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(3rem,8vw,7rem)', letterSpacing:'0.04em', color:'rgba(255,255,255,0.04)', userSelect:'none' }}>BYDASAM</span>
             </div>
           )}
         </div>
-        <div style={{ padding:'6rem 5rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'2rem' }}>{role}</p>
-          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2.5rem,5vw,4.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2.5rem' }}>{name.toUpperCase()}</h2>
-          <p style={{ fontSize:'1.05rem', fontWeight:300, lineHeight:1.95, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
-          <div style={{ marginTop:'3rem' }}>
+        <div style={{ padding:'4rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem' }}>{role}</p>
+          <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
+          <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
+          <div style={{ marginTop:'2.5rem' }}>
             <a href="#booking" className="nav-book-btn" style={{ fontSize:'0.85rem', padding:'0.9rem 2.5rem' }}>Book a Session</a>
           </div>
         </div>
@@ -360,7 +346,7 @@ function Booking() {
     if (!form.firstName || !form.email) return toast('Fill in your name and email.');
     setBusy(true);
     try {
-      await api.post('/bookings', { ...form, service: 'General Inquiry' });
+      await api.post('/bookings', { ...form, service:'General Inquiry' });
       toast('Booking sent! I will be in touch within 24h.');
       setForm({ firstName:'',lastName:'',email:'',phone:'',date:'',message:'' });
     } catch { toast('Something went wrong. Try again.'); }

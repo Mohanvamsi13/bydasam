@@ -15,9 +15,10 @@ adminSchema.pre('save', async function(next){
 adminSchema.methods.comparePassword = function(p){ return bcrypt.compare(p, this.password); };
 
 const folderSchema = new mongoose.Schema({
-  name:   { type:String, required:true },
-  parent: { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
-  order:  { type:Number, default:0 },
+  name:      { type:String, required:true },
+  parent:    { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
+  coverPhoto:{ type:String, default:'' },
+  order:     { type:Number, default:0 },
 }, { timestamps:true });
 
 const photoSchema = new mongoose.Schema({
@@ -30,16 +31,32 @@ const photoSchema = new mongoose.Schema({
   order:    { type:Number, default:0 },
 }, { timestamps:true });
 
-const serviceSchema = new mongoose.Schema({ name:{type:String,required:true}, desc:{type:String,default:''}, price:{type:String,default:'Contact for pricing'}, order:{type:Number,default:0} }, { timestamps:true });
-const bookingSchema = new mongoose.Schema({ firstName:{type:String,required:true}, lastName:{type:String,default:''}, email:{type:String,required:true,lowercase:true}, phone:{type:String,default:''}, service:{type:String,required:true}, date:{type:String,default:''}, message:{type:String,default:''}, status:{type:String,enum:['new','confirmed','cancelled'],default:'new'} }, { timestamps:true });
-const settingsSchema = new mongoose.Schema({ key:{type:String,required:true,unique:true}, value:{type:mongoose.Schema.Types.Mixed} }, { timestamps:true });
-const socialSchema = new mongoose.Schema({ name:{type:String,required:true}, url:{type:String,required:true}, order:{type:Number,default:0} }, { timestamps:true });
+const bookingSchema = new mongoose.Schema({
+  firstName:{ type:String, required:true },
+  lastName: { type:String, default:'' },
+  email:    { type:String, required:true, lowercase:true },
+  phone:    { type:String, default:'' },
+  service:  { type:String, default:'General Inquiry' },
+  date:     { type:String, default:'' },
+  message:  { type:String, default:'' },
+  status:   { type:String, enum:['new','confirmed','cancelled'], default:'new' }
+}, { timestamps:true });
+
+const settingsSchema = new mongoose.Schema({
+  key:  { type:String, required:true, unique:true },
+  value:{ type:mongoose.Schema.Types.Mixed }
+}, { timestamps:true });
+
+const socialSchema = new mongoose.Schema({
+  name: { type:String, required:true },
+  url:  { type:String, required:true },
+  order:{ type:Number, default:0 }
+}, { timestamps:true });
 
 module.exports = {
   Admin:    mongoose.models.Admin    || mongoose.model('Admin',    adminSchema),
   Folder:   mongoose.models.Folder   || mongoose.model('Folder',   folderSchema),
   Photo:    mongoose.models.Photo    || mongoose.model('Photo',    photoSchema),
-  Service:  mongoose.models.Service  || mongoose.model('Service',  serviceSchema),
   Booking:  mongoose.models.Booking  || mongoose.model('Booking',  bookingSchema),
   Settings: mongoose.models.Settings || mongoose.model('Settings', settingsSchema),
   Social:   mongoose.models.Social   || mongoose.model('Social',   socialSchema),
