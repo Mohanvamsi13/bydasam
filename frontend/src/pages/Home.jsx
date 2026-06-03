@@ -95,11 +95,19 @@ function About() {
   const role  = settings.aboutRole  || 'Photographer · Storyteller · Visual Architect';
   const bio   = settings.aboutBio   || '';
   const photo = settings.aboutPhoto || '';
-  const defaultBio = `I am a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping. Trained at the legendary Annapurna Studios in Film and Photography, pursued a Masters in Photography at Dartmouth University, Massachusetts and an MBA from Lindsey Wilson College, Kentucky. Based in Alabama and available across the entire United States.`;
+
+  const defaultBio = [
+    `I am <strong>Madhu Sai Pavan Dasam</strong> — a photographer obsessed with finding beauty in unexpected places. From the chaos of street life to the stillness of a wedding moment, every frame tells a story worth keeping.`,
+    `Trained at the legendary <strong>Annapurna Studios</strong> in Film and Photography, pursued a <strong>Masters in Photography at Dartmouth University, Massachusetts</strong> and an <strong>MBA from Lindsey Wilson College, Kentucky</strong> — bringing a rare blend of artistic mastery and business sharpness to every project.`,
+    `Based in <strong>Alabama</strong> and available across the entire United States, I specialize in capturing the moments that words simply cannot describe. Weddings that make you cry rewatching them. Streets that feel alive. Cars that look like they are moving standing still. Abstract work that makes you stop and stare.`,
+    `My unique combination of artistic training and business acumen means I do not just understand photography — <strong>I understand you, your brand, and what you need.</strong>`,
+    `I do not just photograph your moments — <strong>I preserve them forever.</strong>`,
+  ];
+
   return (
     <section id="about" style={{ borderTop:'1px solid #111', background:'#000' }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr' }}>
-        <div style={{ background:'#0a0a0a', overflow:'hidden', display:'flex', alignItems:'flex-start' }}>
+        <div style={{ background:'#0a0a0a', overflow:'hidden', display:'flex', alignItems:'flex-start', justifyContent:'center' }}>
           {photo ? (
             <img src={photo} alt={name} style={{ width:'100%', height:'auto', display:'block', objectFit:'contain' }} />
           ) : (
@@ -111,7 +119,13 @@ function About() {
         <div style={{ padding:'4rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', borderLeft:'1px solid #111' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.4em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem' }}>{role}</p>
           <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(2rem,4vw,3.5rem)', letterSpacing:'0.02em', lineHeight:1.05, color:'#fff', marginBottom:'2rem' }}>{name.toUpperCase()}</h2>
-          <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio || defaultBio}</p>
+          {bio ? (
+            <p style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px' }}>{bio}</p>
+          ) : (
+            defaultBio.map((line, i) => (
+              <p key={i} style={{ fontSize:'1rem', fontWeight:300, lineHeight:1.85, color:'rgba(255,255,255,0.75)', maxWidth:'520px', marginBottom:'1rem' }} dangerouslySetInnerHTML={{ __html: line }} />
+            ))
+          )}
         </div>
       </div>
     </section>
@@ -227,7 +241,7 @@ function Collections() {
   const currentChildren = currentFolder ? getChildren(currentFolder._id) : rootFolders;
 
   return (
-    <section id="collections" style={{ background:'#000', borderTop:'1px solid #111', paddingBottom:'4rem' }}>
+    <section id="collections" style={{ background:'#000', borderTop:'1px solid #111', paddingBottom:'2rem' }}>
       <div className="section-header">
         <div>
           <p className="section-label">Browse Work</p>
@@ -290,7 +304,7 @@ function Collections() {
       )}
 
       {currentChildren.length === 0 && folderPhotos.length === 0 && (
-        <div style={{ textAlign:'center', padding:'4rem', color:'rgba(255,255,255,0.15)' }}>
+        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
         </div>
       )}
@@ -322,7 +336,7 @@ function Contact() {
   const list = socials.length ? socials : defaults;
   return (
     <section id="contact" style={{ borderTop:'1px solid #111' }}>
-      <div className="contact-hero">
+      <div style={{ padding:'2.5rem 2.5rem 1.5rem' }}>
         <p className="section-label">Lets Create Something</p>
         <h2 className="contact-big">GET IN TOUCH</h2>
       </div>
@@ -352,8 +366,8 @@ function Booking() {
     finally { setBusy(false); }
   };
   return (
-    <section id="booking" style={{ padding:'5rem 2.5rem', borderTop:'1px solid #111' }}>
-      <div style={{ marginBottom:'3rem' }}>
+    <section id="booking" style={{ padding:'3rem 2.5rem', borderTop:'1px solid #111' }}>
+      <div style={{ marginBottom:'2rem' }}>
         <p className="section-label">Reserve Your Date</p>
         <h2 className="section-title">BOOK A SESSION</h2>
       </div>

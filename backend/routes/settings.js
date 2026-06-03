@@ -9,7 +9,7 @@ cloudinary.config({ cloud_name:process.env.CLOUDINARY_CLOUD_NAME, api_key:proces
 
 const imageStorage = new CloudinaryStorage({
   cloudinary,
-  params: { folder:'bydasam-about', allowed_formats:['jpg','jpeg','png','webp'], transformation:[{ width:1200, crop:'fill', height:1400, quality:'auto:good', fetch_format:'auto' }] }
+  params: { folder:'bydasam-about', allowed_formats:['jpg','jpeg','png','webp'], transformation:[{ width:780, height:910, crop:'limit', quality:'auto:good', fetch_format:'auto' }] }
 });
 
 const heroStorage = new CloudinaryStorage({
