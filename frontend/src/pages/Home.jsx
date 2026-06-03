@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -58,18 +58,19 @@ function Carousel() {
   }
 
   const doubled = [...photos, ...photos];
-  const duration = photos.length * 4;
+  const duration = photos.length * 5;
 
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', height:'22vw', maxHeight:'240px', minHeight:'120px' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0' }}>
       <div style={{
         display:'flex',
-        height:'100%',
-        width:`${doubled.length * 100}%`,
+        gap:'8px',
+        height:'80px',
         animation:`carouselScroll ${duration}s linear infinite`,
+        width:`calc(${doubled.length} * (140px + 8px))`,
       }}>
         {doubled.map((p, i) => (
-          <div key={i} style={{ width:`${100/doubled.length}%`, height:'100%', flexShrink:0 }}>
+          <div key={i} style={{ width:'140px', height:'80px', flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)' }}>
             <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>
         ))}
@@ -77,7 +78,7 @@ function Carousel() {
       <style>{`
         @keyframes carouselScroll {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(calc(-${photos.length} * (140px + 8px))); }
         }
       `}</style>
     </div>
@@ -155,7 +156,6 @@ function Collections() {
   const [lb, setLb] = useState({ open: false, idx: 0 });
 
   const loadFolders = () => api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
-
   useEffect(() => { loadFolders(); }, []);
 
   const currentFolder = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1] : null;
@@ -382,7 +382,7 @@ function Booking() {
           </div>
           <div className="form-group full">
             <label className="form-label">Tell Me About Your Vision</label>
-            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references, anything you have in mind..." style={{ resize:'none', height:'100px' }} />
+            <textarea name="message" value={form.message} onChange={set} className="form-input" rows={4} placeholder="Location, number of people, style references..." style={{ resize:'none', height:'100px' }} />
           </div>
         </div>
         <button type="submit" className="submit-btn" disabled={busy}>{busy ? 'Sending...' : 'Send Request →'}</button>
