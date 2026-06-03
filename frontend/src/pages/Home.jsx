@@ -57,8 +57,8 @@ function Carousel() {
     );
   }
 
-  const FRAME_W = 120;
-  const FRAME_H = 75;
+  const FRAME_W = 180;
+  const FRAME_H = 140;
   const GAP = 8;
   const doubled = [...photos, ...photos];
   const duration = photos.length * 4;
