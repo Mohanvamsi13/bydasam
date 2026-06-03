@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const sharp = require('sharp');
 const { protect } = require('../middleware/auth');
 const { Photo } = require('../models');
 
@@ -11,23 +11,31 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'bydasam',
-    allowed_formats: ['jpg','jpeg','png','webp','gif','tiff','bmp'],
-    transformation: [{ width:2400, crop:'limit', quality:'auto:good', fetch_format:'auto' }],
-  }
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 },
 });
 
-const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
+const compressAndUpload = async (buffer, filename) => {
+  const compressed = await sharp(buffer)
+    .resize({ width: 2400, withoutEnlargement: true })
+    .jpeg({ quality: 85, progressive: true })
+    .toBuffer();
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'bydasam', resource_type: 'image', fetch_format: 'auto' },
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+    stream.end(compressed);
+  });
+};
 
 router.get('/', async (req, res) => {
   try {
     const q = {};
     if (req.query.folder) q.folder = req.query.folder;
     if (req.query.featured) q.featured = true;
-    if (req.query.type) q.type = req.query.type;
     const photos = await Photo.find(q).populate('folder','name').sort({ order:1, createdAt:-1 });
     res.json(photos);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -36,14 +44,17 @@ router.get('/', async (req, res) => {
 router.post('/', protect, upload.array('photos', 100), async (req, res) => {
   try {
     const saved = await Promise.all(
-      req.files.map((f, i) => Photo.create({
-        title:    req.body.title || '',
-        url:      f.path,
-        publicId: f.filename,
-        folder:   req.body.folder || null,
-        type:     req.body.type || 'portfolio',
-        order:    i,
-      }))
+      req.files.map(async (f, i) => {
+        const result = await compressAndUpload(f.buffer, f.originalname);
+        return Photo.create({
+          title:    req.body.title || '',
+          url:      result.secure_url,
+          publicId: result.public_id,
+          folder:   req.body.folder || null,
+          featured: false,
+          order:    i,
+        });
+      })
     );
     res.status(201).json(saved);
   } catch(e) { res.status(500).json({ error: e.message }); }

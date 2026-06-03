@@ -1,40 +1,41 @@
 const router = require('express').Router();
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const sharp = require('sharp');
 const { protect } = require('../middleware/auth');
 const { Settings } = require('../models');
 
 cloudinary.config({ cloud_name:process.env.CLOUDINARY_CLOUD_NAME, api_key:process.env.CLOUDINARY_API_KEY, api_secret:process.env.CLOUDINARY_API_SECRET });
 
-const imageStorage = new CloudinaryStorage({
-  cloudinary,
-  params: { folder:'bydasam-about', allowed_formats:['jpg','jpeg','png','webp'], transformation:[{ width:780, height:910, crop:'limit', quality:'auto:good', fetch_format:'auto' }] }
-});
+const upload = multer({ storage: multer.memoryStorage(), limits:{ fileSize: 500*1024*1024 } });
+const uploadHero = multer({ storage: multer.memoryStorage(), limits:{ fileSize: 500*1024*1024 } });
 
-const heroStorage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => {
-    const isVideo = file.mimetype.startsWith('video/');
-    return {
-      folder: 'bydasam-hero',
-      resource_type: isVideo ? 'video' : 'image',
-      allowed_formats: isVideo ? ['mp4','mov','webm','avi'] : ['jpg','jpeg','png','webp'],
-      transformation: isVideo
-        ? [{ quality:'auto:good', fetch_format:'mp4' }]
-        : [{ width:1920, crop:'limit', quality:'auto:good', fetch_format:'auto' }],
-    };
-  }
-});
+const compressImage = async (buffer, width=2400, quality=85) => {
+  return sharp(buffer)
+    .resize({ width, withoutEnlargement: true })
+    .jpeg({ quality, progressive: true })
+    .toBuffer();
+};
 
-const carouselStorage = new CloudinaryStorage({
-  cloudinary,
-  params: { folder:'bydasam-carousel', allowed_formats:['jpg','jpeg','png','webp'], transformation:[{ width:1920, crop:'limit', quality:'auto:good', fetch_format:'auto' }] }
-});
+const uploadToCloudinary = (buffer, folder, opts={}) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type:'image', fetch_format:'auto', ...opts },
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+    stream.end(buffer);
+  });
+};
 
-const uploadImage    = multer({ storage: imageStorage,    limits:{ fileSize: 500*1024*1024 } });
-const uploadHero     = multer({ storage: heroStorage,     limits:{ fileSize: 500*1024*1024 } });
-const uploadCarousel = multer({ storage: carouselStorage, limits:{ fileSize: 500*1024*1024 } });
+const uploadVideoToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type:'video', fetch_format:'mp4' },
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+    stream.end(buffer);
+  });
+};
 
 router.get('/', async (req,res) => {
   try {
@@ -54,19 +55,30 @@ router.post('/', protect, async (req,res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-router.post('/about-photo', protect, uploadImage.single('photo'), async (req,res) => {
+router.post('/about-photo', protect, upload.single('photo'), async (req,res) => {
   try {
-    await Settings.findOneAndUpdate({key:'aboutPhoto'},{key:'aboutPhoto',value:req.file.path},{upsert:true,new:true});
-    res.json({ url: req.file.path });
+    const compressed = await compressImage(req.file.buffer, 780, 90);
+    const result = await uploadToCloudinary(compressed, 'bydasam-about');
+    await Settings.findOneAndUpdate({key:'aboutPhoto'},{key:'aboutPhoto',value:result.secure_url},{upsert:true,new:true});
+    res.json({ url: result.secure_url });
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
 router.post('/hero-media', protect, uploadHero.single('media'), async (req,res) => {
   try {
     const isVideo = req.file.mimetype.startsWith('video/');
-    await Settings.findOneAndUpdate({key:'heroMedia'},{key:'heroMedia',value:req.file.path},{upsert:true,new:true});
+    let url;
+    if (isVideo) {
+      const result = await uploadVideoToCloudinary(req.file.buffer, 'bydasam-hero');
+      url = result.secure_url;
+    } else {
+      const compressed = await compressImage(req.file.buffer, 1920, 90);
+      const result = await uploadToCloudinary(compressed, 'bydasam-hero');
+      url = result.secure_url;
+    }
+    await Settings.findOneAndUpdate({key:'heroMedia'},{key:'heroMedia',value:url},{upsert:true,new:true});
     await Settings.findOneAndUpdate({key:'heroMediaType'},{key:'heroMediaType',value:isVideo?'video':'image'},{upsert:true,new:true});
-    res.json({ url: req.file.path, type: isVideo?'video':'image' });
+    res.json({ url, type: isVideo?'video':'image' });
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
@@ -77,11 +89,17 @@ router.get('/carousel', async (req,res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-router.post('/carousel', protect, uploadCarousel.array('photos', 20), async (req,res) => {
+router.post('/carousel', protect, upload.array('photos', 20), async (req,res) => {
   try {
     const existing = await Settings.findOne({ key:'carouselPhotos' });
     const current = existing ? existing.value : [];
-    const newPhotos = req.files.map((f, i) => ({ url: f.path, publicId: f.filename, order: current.length + i }));
+    const newPhotos = await Promise.all(
+      req.files.map(async (f, i) => {
+        const compressed = await compressImage(f.buffer, 1920, 85);
+        const result = await uploadToCloudinary(compressed, 'bydasam-carousel');
+        return { url: result.secure_url, publicId: result.public_id, order: current.length + i };
+      })
+    );
     const updated = [...current, ...newPhotos].slice(0, 20);
     await Settings.findOneAndUpdate({key:'carouselPhotos'},{key:'carouselPhotos',value:updated},{upsert:true,new:true});
     res.json(updated);
