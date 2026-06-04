@@ -25,12 +25,6 @@ function Hero() {
         <div className="hero-placeholder" />
       )}
       <div className="hero-overlay" />
-      <div className="hero-content">
-        <p className="hero-eyebrow">Photography</p>
-        <h1 className="hero-name" style={{ WebkitTextStroke:'2px rgba(255,255,255,0.9)', color:'transparent' }}>BYDASAM</h1>
-        <p className="hero-tagline">Street · Wedding · Speed & Steel · Abstract · Portrait</p>
-      </div>
-      <div className="hero-scroll">Scroll</div>
     </section>
   );
 }
@@ -52,19 +46,19 @@ function Carousel() {
       </div>
     );
   }
-  const FRAME_W = 180, FRAME_H = 140, GAP = 8;
+  const FRAME_W = 200, FRAME_H = 160, GAP = 8;
   const doubled = [...photos, ...photos];
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0', marginBottom:'96px' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'14px 0' }}>
       <style>{`
         @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
-        .c-frame { transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
-        .c-frame:hover { transform: scale(1.18) !important; z-index: 10; position: relative; }
+        .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .c-frame:hover { transform: scale(1.12) !important; z-index: 10; position: relative; }
       `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (
           <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center center', display:'block' }} />
           </div>
         ))}
       </div>
@@ -256,7 +250,6 @@ function Collections() {
           </span>
         ))}
       </div>
-
       {currentChildren.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:'4px', padding:'0 4px', marginBottom:'4px' }}>
           {currentChildren.map(f => (
@@ -279,15 +272,12 @@ function Collections() {
           ))}
         </div>
       )}
-
       {folderPhotos.length > 0 && <PhotoGrid photos={folderPhotos} onOpen={openLb} />}
-
       {currentChildren.length === 0 && folderPhotos.length === 0 && (
         <div style={{ textAlign:'center', padding:'4rem', color:'rgba(255,255,255,0.15)' }}>
           <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1.1rem', letterSpacing:'0.25em', textTransform:'uppercase' }}>No photos in this collection yet</p>
         </div>
       )}
-
       <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
         {lb.open && folderPhotos[lb.idx] && (
           <>
