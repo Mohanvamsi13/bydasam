@@ -5,14 +5,15 @@ import api from '../utils/api';
 import { useToast } from '../hooks/useToast';
 
 const TABS = [
-  { id:'Hero',        icon:'🎬' },
-  { id:'Carousel',    icon:'🎠' },
-  { id:'About',       icon:'👤' },
-  { id:'Portfolio',   icon:'🖼' },
-  { id:'Collections', icon:'📂' },
-  { id:'Social',      icon:'🔗' },
-  { id:'Bookings',    icon:'📅' },
-  { id:'Security',    icon:'🔒' },
+  { id:'Hero',        icon:'🎬', desc:'Background' },
+  { id:'Carousel',    icon:'🎠', desc:'Sliding strip' },
+  { id:'About',       icon:'👤', desc:'Your profile' },
+  { id:'Portfolio',   icon:'🖼', desc:'Featured photos' },
+  { id:'Weddings',    icon:'💒', desc:'Wedding albums' },
+  { id:'Collections', icon:'📂', desc:'All collections' },
+  { id:'Social',      icon:'🔗', desc:'Links' },
+  { id:'Bookings',    icon:'📅', desc:'Inquiries' },
+  { id:'Security',    icon:'🔒', desc:'2FA login' },
 ];
 
 export default function AdminPanel() {
@@ -49,7 +50,8 @@ export default function AdminPanel() {
           {TABS.map(t => (
             <button key={t.id} className={`atab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>
               <span style={{ fontSize:'0.9rem' }}>{t.icon}</span>
-              {t.id}
+              <span style={{ flex:1, textAlign:'left' }}>{t.id}</span>
+              <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.2)', letterSpacing:'0.08em' }}>{t.desc}</span>
             </button>
           ))}
           <div style={{ padding:'1.2rem 1.5rem', borderTop:'1px solid #1a1a1a', marginTop:'1rem' }}>
@@ -70,6 +72,7 @@ export default function AdminPanel() {
           {tab==='Carousel'    && <CarouselTab />}
           {tab==='About'       && <AboutTab />}
           {tab==='Portfolio'   && <PortfolioTab />}
+          {tab==='Weddings'    && <WeddingsTab />}
           {tab==='Collections' && <CollectionsTab />}
           {tab==='Social'      && <SocialTab />}
           {tab==='Bookings'    && <BookingsTab />}
@@ -80,17 +83,58 @@ export default function AdminPanel() {
   );
 }
 
-function Row({ label, children }) {
-  return <div style={{ marginBottom:'1.4rem' }}><label className="a-label">{label}</label>{children}</div>;
-}
-function TwoCol({ children }) {
-  return <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 2rem' }}>{children}</div>;
-}
 function SectionHeader({ title, sub }) {
   return (
     <div style={{ marginBottom:'1.5rem' }}>
       <h2 className="admin-section-title">{title}</h2>
       {sub && <p className="admin-section-sub">{sub}</p>}
+    </div>
+  );
+}
+
+function Row({ label, children }) {
+  return <div style={{ marginBottom:'1.4rem' }}><label className="a-label">{label}</label>{children}</div>;
+}
+
+function TwoCol({ children }) {
+  return <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 2rem' }}>{children}</div>;
+}
+
+async function uploadFilesOneByOne(files, uploadFn, onProgress) {
+  const results = [];
+  for (let i = 0; i < files.length; i++) {
+    onProgress(i + 1, files.length);
+    const result = await uploadFn(files[i], i);
+    results.push(result);
+  }
+  return results;
+}
+
+function UploadZone({ onFiles, busy, status, accept='image/*', multiple=true, label='Click or drag photos here', hint='Auto compressed · Any size' }) {
+  return (
+    <label className="upload-zone">
+      <input type="file" accept={accept} multiple={multiple} onChange={e => onFiles([...e.target.files])} />
+      <div className="upload-icon">↑</div>
+      <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy ? status : label}</p>
+      <p>{hint}</p>
+    </label>
+  );
+}
+
+function PhotoThumb({ photo, selected, onSelect, onDelete, showSelect=false }) {
+  return (
+    <div className="thumb" style={{ outline: selected ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
+      <img src={photo.url} alt="" loading="lazy" />
+      {showSelect && (
+        <div style={{ position:'absolute', top:4, left:4 }} onClick={e => { e.stopPropagation(); onSelect(); }}>
+          <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected ? '#fff' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            {selected && <span style={{ color:'#000', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
+          </div>
+        </div>
+      )}
+      <div className="thumb-del">
+        <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={onDelete}>Delete</button>
+      </div>
     </div>
   );
 }
@@ -109,24 +153,10 @@ function HeroTab() {
     }).catch(() => {});
   }, []);
 
-  const uploadHeroMedia = async e => {
+  const upload = async e => {
     const file = e.target.files[0];
     if (!file) return;
     const isVideo = file.type.startsWith('video/');
-    if (isVideo) {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = async () => {
-        window.URL.revokeObjectURL(video.src);
-        if (video.duration > 5000) { toast('Video must be maximum 5000 seconds!'); e.target.value=''; return; }
-        if (video.duration < 20) { toast('Video must be at least 20 seconds!'); e.target.value=''; return; }
-        await doUpload(file, e);
-      };
-      video.src = URL.createObjectURL(file);
-    } else { await doUpload(file, e); }
-  };
-
-  const doUpload = async (file, e) => {
     setUploading(true); setProgress(0);
     const fd = new FormData();
     fd.append('media', file);
@@ -136,27 +166,27 @@ function HeroTab() {
         onUploadProgress: p => setProgress(Math.round(p.loaded * 100 / p.total)),
       });
       setHeroMedia(data.url); setHeroMediaType(data.type);
-      toast('Hero media updated!');
+      toast('Hero updated!');
     } catch { toast('Upload failed'); }
     finally { setUploading(false); setProgress(0); e.target.value=''; }
   };
 
   const remove = async () => {
-    if (!confirm('Remove hero media?')) return;
-    try { await api.post('/settings', { heroMedia:'', heroMediaType:'' }); setHeroMedia(''); setHeroMediaType(''); toast('Removed'); }
+    if (!confirm('Remove hero?')) return;
+    try { await api.post('/settings', { heroMedia:'', heroMediaType:'' }); setHeroMedia(''); toast('Removed'); }
     catch { toast('Error'); }
   };
 
   return (
     <>
-      <SectionHeader title="Hero" sub="Upload the full-screen background for your homepage" />
-      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
+      <SectionHeader title="Hero" sub="Full screen background — upload a photo or video" />
+      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
         <p style={{ fontSize:'0.9rem', color:'rgba(255,255,255,0.4)', marginBottom:'1.5rem', lineHeight:1.7, fontWeight:300 }}>
-          Fills the entire screen behind BYDASAM. Upload a photo for a still background or a video for a cinematic effect.
+          This fills the entire first screen of your website. Use a high quality photo or a cinematic video (20 seconds minimum).
         </p>
         {heroMedia && (
           <div style={{ marginBottom:'1.5rem' }}>
-            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Current Hero {heroMediaType==='video'?'Video':'Photo'}</p>
+            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Current</p>
             {heroMediaType==='video' ? (
               <video src={heroMedia} style={{ width:'100%', maxWidth:'500px', height:'250px', objectFit:'cover', borderRadius:'8px' }} muted controls />
             ) : (
@@ -165,7 +195,7 @@ function HeroTab() {
             <div style={{ marginTop:'0.8rem' }}><button className="a-btn a-btn-red a-btn-sm" onClick={remove}>Remove</button></div>
           </div>
         )}
-        {uploading && progress > 0 && (
+        {uploading && (
           <div style={{ marginBottom:'1.2rem' }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px' }}>
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>Uploading & compressing...</p>
@@ -177,19 +207,15 @@ function HeroTab() {
           </div>
         )}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' }}>
-          <label style={{ background:'#0d0d0d', border:'1px dashed #333', borderRadius:'10px', padding:'2rem 1rem', textAlign:'center', cursor:'pointer', position:'relative' }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor='#555'} onMouseLeave={e=>e.currentTarget.style.borderColor='#333'}>
-            <input type="file" accept="image/*" onChange={uploadHeroMedia} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
+          <label style={{ background:'#0d0d0d', border:'1px dashed #333', borderRadius:'10px', padding:'2rem 1rem', textAlign:'center', cursor:'pointer', position:'relative' }}>
+            <input type="file" accept="image/*" onChange={upload} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
             <div style={{ fontSize:'2rem', marginBottom:'0.8rem' }}>📸</div>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)', marginBottom:'0.4rem' }}>Upload Photo</p>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.25)' }}>JPG · PNG · WEBP</p>
+            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)' }}>Upload Photo</p>
           </label>
-          <label style={{ background:'#0d0d0d', border:'1px dashed #333', borderRadius:'10px', padding:'2rem 1rem', textAlign:'center', cursor:'pointer', position:'relative' }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor='#555'} onMouseLeave={e=>e.currentTarget.style.borderColor='#333'}>
-            <input type="file" accept="video/mp4,video/mov,video/avi,video/webm" onChange={uploadHeroMedia} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
+          <label style={{ background:'#0d0d0d', border:'1px dashed #333', borderRadius:'10px', padding:'2rem 1rem', textAlign:'center', cursor:'pointer', position:'relative' }}>
+            <input type="file" accept="video/*" onChange={upload} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
             <div style={{ fontSize:'2rem', marginBottom:'0.8rem' }}>🎬</div>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)', marginBottom:'0.4rem' }}>Upload Video</p>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.25)' }}>MP4 · MOV · AVI · WebM · 20s–5000s</p>
+            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)' }}>Upload Video</p>
           </label>
         </div>
       </div>
@@ -201,60 +227,75 @@ function CarouselTab() {
   const toast = useToast();
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [selected, setSelected] = useState(new Set());
+
   const load = () => api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
-  const upload = async e => {
-    const files = [...e.target.files];
+
+  const upload = async files => {
     if (!files.length) return;
-    if (photos.length + files.length > 20) return toast('Maximum 20 photos in carousel!');
+    if (photos.length + files.length > 20) return toast('Maximum 20 photos!');
     setBusy(true);
-    const fd = new FormData();
-    files.forEach(f => fd.append('photos', f));
     try {
-      await api.post('/settings/carousel', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast(files.length + ' photo(s) added!');
-      e.target.value=''; load();
-    } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
-    finally { setBusy(false); }
+      for (let i = 0; i < files.length; i++) {
+        setStatus(`Uploading ${i+1} of ${files.length}...`);
+        const fd = new FormData();
+        fd.append('photos', files[i]);
+        await api.post('/settings/carousel', fd, { headers:{'Content-Type':'multipart/form-data'} });
+      }
+      toast(`${files.length} photo(s) added!`);
+      load();
+    } catch { toast('Upload failed'); }
+    finally { setBusy(false); setStatus(''); }
   };
+
   const del = async publicId => {
-    if (!confirm('Remove from carousel?')) return;
-    try { await api.delete('/settings/carousel/' + encodeURIComponent(publicId)); toast('Removed'); load(); }
+    try { await api.delete('/settings/carousel/' + encodeURIComponent(publicId)); load(); }
     catch { toast('Error'); }
   };
+
+  const toggleSelect = publicId => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(publicId) ? next.delete(publicId) : next.add(publicId);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
+    for (const publicId of selected) {
+      await api.delete('/settings/carousel/' + encodeURIComponent(publicId)).catch(() => {});
+    }
+    setSelected(new Set());
+    toast(`${selected.size} photo(s) deleted!`);
+    load();
+  };
+
   return (
     <>
-      <SectionHeader title="Carousel" sub={`Sliding strip on your homepage — ${photos.length}/20`} />
-      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>{photos.length} of 20 photos</p>
-        <div style={{ display:'flex', gap:'4px' }}>
-          {Array(20).fill(null).map((_,i) => (
-            <div key={i} style={{ width:'8px', height:'8px', borderRadius:'50%', background: i<photos.length?'#fff':'#222' }} />
-          ))}
-        </div>
+      <SectionHeader title="Carousel" sub={`Sliding strip on homepage — ${photos.length}/20 photos`} />
+      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem' }}>
+        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>
+          {photos.length} of 20 · Select photos to delete multiple at once
+        </p>
       </div>
-      <label className="upload-zone">
-        <input type="file" accept="image/*" multiple onChange={upload} />
-        <div className="upload-icon">↑</div>
-        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy?'Uploading & compressing...':'Click or drag photos here'}</p>
-        <p>Auto compressed · Up to 20 photos</p>
-      </label>
-      <div className="thumb-grid">
-        {photos.map((p,i) => (
-          <div key={i} className="thumb">
-            <img src={p.url} alt="" loading="lazy" />
-            <div className="thumb-del">
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => del(p.publicId)}>Remove</button>
-            </div>
-            <div style={{ position:'absolute', top:4, left:4, background:'rgba(0,0,0,0.7)', color:'rgba(255,255,255,0.6)', fontSize:'0.55rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>{i+1}</div>
-          </div>
-        ))}
-      </div>
-      {photos.length===0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No carousel photos yet</p>
+      <UploadZone onFiles={upload} busy={busy} status={status} hint="Auto compressed · Up to 20 photos total" />
+      {selected.size > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
+          <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
+          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
+      <div className="thumb-grid">
+        {photos.map((p,i) => (
+          <PhotoThumb key={i} photo={p} selected={selected.has(p.publicId)} onSelect={() => toggleSelect(p.publicId)} onDelete={() => del(p.publicId)} showSelect />
+        ))}
+      </div>
+      {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
     </>
   );
 }
@@ -285,58 +326,44 @@ function AboutTab() {
   };
 
   const save = async () => {
-    try { await api.post('/settings', { ...form, aboutPhotoPosition: position }); toast('About section saved!'); }
-    catch { toast('Error saving'); }
+    try { await api.post('/settings', { ...form, aboutPhotoPosition: position }); toast('Saved!'); }
+    catch { toast('Error'); }
   };
 
-  const uploadPhoto = async e => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const uploadPhoto = async files => {
+    if (!files[0]) return;
     setUploading(true);
     const fd = new FormData();
-    fd.append('photo', file);
+    fd.append('photo', files[0]);
     try {
       const { data } = await api.post('/settings/about-photo', fd, { headers:{'Content-Type':'multipart/form-data'} });
       setAboutPhoto(data.url); toast('Photo updated!');
     } catch { toast('Upload failed'); }
-    finally { setUploading(false); e.target.value=''; }
+    finally { setUploading(false); }
   };
 
   const positions = [
-    { label:'Top Left', value:'left top' },
-    { label:'Top Center', value:'center top' },
-    { label:'Top Right', value:'right top' },
-    { label:'Middle Left', value:'left center' },
-    { label:'Center', value:'center center' },
-    { label:'Middle Right', value:'right center' },
-    { label:'Bottom Left', value:'left bottom' },
-    { label:'Bottom Center', value:'center bottom' },
-    { label:'Bottom Right', value:'right bottom' },
+    { label:'Top Left', value:'left top' },{ label:'Top Center', value:'center top' },{ label:'Top Right', value:'right top' },
+    { label:'Mid Left', value:'left center' },{ label:'Center', value:'center center' },{ label:'Mid Right', value:'right center' },
+    { label:'Bot Left', value:'left bottom' },{ label:'Bot Center', value:'center bottom' },{ label:'Bot Right', value:'right bottom' },
   ];
 
   return (
     <>
-      <SectionHeader title="About" sub="Edit your about section — updates instantly on the website" />
+      <SectionHeader title="About" sub="Your photo, name, role and bio shown on the website" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
         <p className="a-label" style={{ marginBottom:'1rem' }}>Your Photo</p>
         <div style={{ display:'flex', gap:'1.5rem', alignItems:'flex-start', flexWrap:'wrap' }}>
-          {aboutPhoto && (
-            <img src={aboutPhoto} alt="About" style={{ width:'120px', height:'150px', objectFit:'cover', objectPosition: position, borderRadius:'6px', opacity:0.85 }} />
-          )}
-          <label className="upload-zone" style={{ flex:1, minWidth:'200px', padding:'1.5rem' }}>
-            <input type="file" accept="image/*" onChange={uploadPhoto} />
-            <div className="upload-icon" style={{ fontSize:'1.2rem' }}>↑</div>
-            <p>{uploading?'Uploading...':aboutPhoto?'Click to change photo':'Upload your photo'}</p>
-            <p style={{ marginTop:'0.3rem', fontSize:'0.65rem' }}>Any dimension — auto compressed</p>
-          </label>
+          {aboutPhoto && <img src={aboutPhoto} alt="About" style={{ width:'120px', height:'150px', objectFit:'cover', objectPosition:position, borderRadius:'6px' }} />}
+          <UploadZone onFiles={uploadPhoto} busy={uploading} status="Uploading..." label={aboutPhoto?'Click to change photo':'Upload your photo'} hint="Any size — auto compressed" multiple={false} />
         </div>
         {aboutPhoto && (
           <div style={{ marginTop:'1.2rem' }}>
-            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Photo focus point — pick where to crop from</p>
+            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Crop focus point</p>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'4px', maxWidth:'240px' }}>
               {positions.map(p => (
                 <button key={p.value} onClick={() => savePosition(p.value)}
-                  style={{ padding:'8px 4px', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', textTransform:'uppercase', background: position===p.value ? '#fff' : '#0d0d0d', color: position===p.value ? '#000' : 'rgba(255,255,255,0.35)', border: position===p.value ? '1px solid #fff' : '1px solid #222', borderRadius:'4px', cursor:'pointer', transition:'all 0.2s' }}>
+                  style={{ padding:'8px 4px', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', textTransform:'uppercase', background: position===p.value ? '#fff' : '#0d0d0d', color: position===p.value ? '#000' : 'rgba(255,255,255,0.35)', border: position===p.value ? '1px solid #fff' : '1px solid #222', borderRadius:'4px', cursor:'pointer' }}>
                   {p.label}
                 </button>
               ))}
@@ -346,9 +373,7 @@ function AboutTab() {
       </div>
       <Row label="Your Name"><input name="aboutName" className="a-input" value={form.aboutName} onChange={handle} /></Row>
       <Row label="Your Role"><input name="aboutRole" className="a-input" value={form.aboutRole} onChange={handle} /></Row>
-      <Row label="Your Bio">
-        <textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'200px' }} placeholder="Write your bio here..." />
-      </Row>
+      <Row label="Your Bio"><textarea name="aboutBio" className="a-textarea" value={form.aboutBio} onChange={handle} style={{ height:'200px' }} placeholder="Write your bio here..." /></Row>
       <button className="a-btn" onClick={save}>Save About Section</button>
     </>
   );
@@ -359,160 +384,213 @@ function PortfolioTab() {
   const [photos, setPhotos] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [selected, setSelected] = useState(new Set());
+
   const load = () => Promise.all([
     api.get('/photos').then(r => setPhotos(r.data)),
     api.get('/photos?featured=true').then(r => setFeatured(r.data)),
   ]).catch(() => {});
   useEffect(() => { load(); }, []);
-  const upload = async e => {
-    const files = [...e.target.files];
+
+  const upload = async files => {
     if (!files.length) return;
     setBusy(true);
-    const fd = new FormData();
-    files.forEach(f => fd.append('photos', f));
     try {
-      const saved = await api.post('/photos', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      await Promise.all(saved.data.map(p => api.patch('/photos/'+p._id, { featured:true })));
-      toast(files.length+' photo(s) uploaded!');
-      e.target.value=''; load();
-    } catch(err) { toast(err.response?.data?.error || 'Upload failed'); }
-    finally { setBusy(false); }
+      for (let i = 0; i < files.length; i++) {
+        setStatus(`Uploading ${i+1} of ${files.length}...`);
+        const fd = new FormData();
+        fd.append('photos', files[i]);
+        const res = await api.post('/photos', fd, { headers:{'Content-Type':'multipart/form-data'} });
+        await Promise.all(res.data.map(p => api.patch('/photos/'+p._id, { featured:true })));
+      }
+      toast(`${files.length} photo(s) uploaded!`);
+      load();
+    } catch { toast('Upload failed'); }
+    finally { setBusy(false); setStatus(''); }
   };
+
   const toggle = async (id, isFeatured) => {
     if (!isFeatured && featured.length>=20) return toast('Maximum 20 portfolio photos!');
     try { await api.patch('/photos/'+id, { featured:!isFeatured }); load(); }
     catch { toast('Error'); }
   };
-  const del = async id => {
-    if (!confirm('Delete this photo?')) return;
-    try { await api.delete('/photos/'+id); toast('Deleted'); load(); }
-    catch { toast('Error'); }
+
+  const toggleSelect = id => {
+    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
+
+  const deleteSelected = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
+    for (const id of selected) {
+      await api.delete('/photos/'+id).catch(() => {});
+    }
+    setSelected(new Set());
+    toast(`${selected.size} deleted!`);
+    load();
+  };
+
   return (
     <>
-      <SectionHeader title="Portfolio" sub={`Your best 20 photos shown on homepage — ${featured.length}/20 selected`} />
-      <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>{featured.length} of 20 selected</p>
-        <div style={{ display:'flex', gap:'4px' }}>
-          {Array(20).fill(null).map((_,i) => (
-            <div key={i} style={{ width:'8px', height:'8px', borderRadius:'50%', background: i<featured.length?'#fff':'#222' }} />
-          ))}
+      <SectionHeader title="Portfolio" sub={`Featured photos on homepage — ${featured.length}/20 selected · Click photo to feature/unfeature`} />
+      <UploadZone onFiles={upload} busy={busy} status={status} hint="Photos auto-added to portfolio · Select to feature/unfeature" />
+      {selected.size > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
+          <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
+          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
-      </div>
-      <label className="upload-zone" style={{ marginBottom:'1.5rem' }}>
-        <input type="file" accept="image/*" multiple onChange={upload} />
-        <div className="upload-icon">↑</div>
-        <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy?'Uploading & compressing...':'Upload portfolio photos'}</p>
-        <p>Photos auto-added · Click to feature/unfeature</p>
-      </label>
-      <p className="a-label" style={{ marginBottom:'0.8rem' }}>Click any photo to add/remove from portfolio</p>
+      )}
       <div className="thumb-grid">
         {photos.map(p => (
-          <div key={p._id} className="thumb" style={{ cursor:'pointer', outline:p.featured?'2px solid #fff':'none', outlineOffset:'2px' }}>
-            <img src={p.url} alt={p.title||''} loading="lazy" onClick={() => toggle(p._id, p.featured)} />
+          <div key={p._id} className="thumb" style={{ cursor:'pointer', outline: selected.has(p._id) ? '2px solid #e55' : p.featured ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
+            <img src={p.url} alt="" loading="lazy" onClick={() => toggle(p._id, p.featured)} />
             {p.featured && <div style={{ position:'absolute', top:4, right:4, background:'#fff', color:'#000', fontSize:'0.5rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>★</div>}
+            <div style={{ position:'absolute', top:4, left:4 }} onClick={e => { e.stopPropagation(); toggleSelect(p._id); }}>
+              <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
+              </div>
+            </div>
             <div className="thumb-del">
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => del(p._id)}>Delete</button>
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(load); }}>Delete</button>
             </div>
           </div>
         ))}
       </div>
-      {photos.length===0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet — upload above</p>
-        </div>
-      )}
+      {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
     </>
   );
 }
 
-function CollectionsTab() {
+function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
   const toast = useToast();
-  const [folders, setFolders] = useState([]);
+  const [allFolders, setAllFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [folderPhotos, setFolderPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
+  const [selected, setSelected] = useState(new Set());
 
-  const loadFolders = () => api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {});
+  const loadFolders = () => api.get('/categories/flat').then(r => setAllFolders(r.data)).catch(() => {});
   const loadPhotos = folderId => {
     if (!folderId) { setFolderPhotos([]); return; }
     api.get('/photos?folder='+folderId).then(r => setFolderPhotos(r.data)).catch(() => {});
   };
+
   useEffect(() => { loadFolders(); }, []);
   useEffect(() => { loadPhotos(currentFolder?._id); }, [currentFolder]);
 
+  const rootFolder = allFolders.find(f => !f.parent && f.name.toLowerCase() === rootFolderName.toLowerCase());
   const getChildren = parentId => {
-    if (!parentId) return folders.filter(f => !f.parent);
-    return folders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
+    if (!parentId) return rootFolder ? allFolders.filter(f => String(f.parent?._id||f.parent) === String(rootFolder._id)) : [];
+    return allFolders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
   };
-  const openFolder = folder => { setCurrentFolder(folder); setBreadcrumb(prev => [...prev, folder]); setShowNew(false); };
+
+  const openFolder = folder => { setCurrentFolder(folder); setBreadcrumb(prev => [...prev, folder]); setShowNew(false); setSelected(new Set()); };
   const goToCrumb = idx => {
     if (idx===-1) { setCurrentFolder(null); setBreadcrumb([]); setFolderPhotos([]); }
-    else { const target = breadcrumb[idx]; setCurrentFolder(target); setBreadcrumb(breadcrumb.slice(0, idx+1)); loadPhotos(target._id); }
-    setShowNew(false);
+    else { const t = breadcrumb[idx]; setCurrentFolder(t); setBreadcrumb(breadcrumb.slice(0,idx+1)); loadPhotos(t._id); }
+    setShowNew(false); setSelected(new Set());
   };
+
   const create = async () => {
-    if (!newName.trim()) return toast('Enter a collection name');
-    try { await api.post('/categories', { name:newName.trim(), parent:currentFolder?._id||null }); toast('Collection created!'); setNewName(''); setShowNew(false); loadFolders(); }
-    catch(e) { toast(e.response?.data?.error||'Error'); }
+    if (!newName.trim()) return toast('Enter a name');
+    const parentId = currentFolder ? currentFolder._id : rootFolder?._id;
+    if (!parentId && !rootFolder) {
+      try {
+        const root = await api.post('/categories', { name: rootFolderName, parent: null });
+        await api.post('/categories', { name: newName.trim(), parent: root.data._id });
+      } catch { toast('Error'); return; }
+    } else {
+      try { await api.post('/categories', { name: newName.trim(), parent: parentId||null }); }
+      catch(e) { toast(e.response?.data?.error||'Error'); return; }
+    }
+    toast('Created!'); setNewName(''); setShowNew(false); loadFolders();
   };
-  const del = async (id, e) => {
+
+  const delFolder = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('Delete this collection?')) return;
+    if (!confirm('Delete this folder and all its contents?')) return;
     try { await api.delete('/categories/'+id); toast('Deleted'); loadFolders(); }
     catch { toast('Error'); }
   };
-  const uploadToFolder = async (e, folderId) => {
-    const files = [...e.target.files];
-    if (!files.length) return;
+
+  const upload = async files => {
+    if (!files.length || !currentFolder) return;
     setBusy(true);
-    const fd = new FormData();
-    files.forEach(f => fd.append('photos', f));
-    fd.append('folder', folderId);
-    try { await api.post('/photos', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); toast(files.length+' photo(s) uploaded!'); e.target.value=''; loadPhotos(folderId); loadFolders(); }
-    catch(err) { toast(err.response?.data?.error||'Upload failed'); }
-    finally { setBusy(false); }
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setStatus(`Uploading ${i+1} of ${files.length}...`);
+        const fd = new FormData();
+        fd.append('photos', files[i]);
+        fd.append('folder', currentFolder._id);
+        await api.post('/photos', fd, { headers:{'Content-Type':'multipart/form-data'} });
+      }
+      toast(`${files.length} photo(s) uploaded!`);
+      loadPhotos(currentFolder._id); loadFolders();
+    } catch { toast('Upload failed'); }
+    finally { setBusy(false); setStatus(''); }
   };
-  const delPhoto = async id => {
-    if (!confirm('Delete photo?')) return;
-    try { await api.delete('/photos/'+id); toast('Deleted'); loadPhotos(currentFolder?._id); }
-    catch { toast('Error'); }
+
+  const toggleSelect = id => {
+    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
+
+  const deleteSelected = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
+    for (const id of selected) await api.delete('/photos/'+id).catch(() => {});
+    setSelected(new Set()); toast(`${selected.size} deleted!`);
+    loadPhotos(currentFolder._id);
+  };
+
   const currentChildren = getChildren(currentFolder?._id);
 
   return (
     <>
-      <SectionHeader title="Collections" sub="Create collections and upload photos — displayed on website with cover photos" />
+      <SectionHeader title={sectionTitle} sub={sectionSub} />
+
       <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a', flexWrap:'wrap' }}>
-        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color:currentFolder?'rgba(255,255,255,0.4)':'#fff', cursor:'pointer' }}>All Collections</span>
+        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:currentFolder?'rgba(255,255,255,0.4)':'#fff', cursor:'pointer' }}>
+          {rootFolderName}
+        </span>
         {breadcrumb.map((b, i) => (
           <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            <span style={{ color:'rgba(255,255,255,0.2)', fontSize:'0.7rem' }}>›</span>
-            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.78rem', letterSpacing:'0.15em', textTransform:'uppercase', color:i===breadcrumb.length-1?'#fff':'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
+            <span style={{ color:'rgba(255,255,255,0.2)' }}>›</span>
+            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:i===breadcrumb.length-1?'#fff':'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
           </span>
         ))}
       </div>
+
       {currentFolder && (
         <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
-          <p className="a-label" style={{ marginBottom:'1rem' }}>Upload photos to {currentFolder.name}</p>
-          <label className="upload-zone" style={{ marginBottom:'1rem' }}>
-            <input type="file" accept="image/*" multiple onChange={e => uploadToFolder(e, currentFolder._id)} />
-            <div className="upload-icon">↑</div>
-            <p style={{ fontSize:'0.9rem', marginBottom:'0.4rem', color:'rgba(255,255,255,0.5)' }}>{busy?'Uploading & compressing...':'Click or drag photos here'}</p>
-            <p>Auto compressed · Any size · Multiple files</p>
-          </label>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>Upload photos to "{currentFolder.name}"</p>
+          <UploadZone onFiles={upload} busy={busy} status={status} hint="Multiple files supported · Auto compressed" />
+          {selected.size > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#0d0d0d', borderRadius:'8px' }}>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
+              <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
+              <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+            </div>
+          )}
           {folderPhotos.length > 0 && (
             <>
-              <p className="a-label" style={{ marginBottom:'0.8rem' }}>Photos in {currentFolder.name} ({folderPhotos.length})</p>
+              <p className="a-label" style={{ marginBottom:'0.8rem' }}>{folderPhotos.length} photos · Click checkbox to select multiple</p>
               <div className="thumb-grid">
                 {folderPhotos.map(p => (
-                  <div key={p._id} className="thumb">
-                    <img src={p.url} alt={p.title||''} loading="lazy" />
+                  <div key={p._id} className="thumb" style={{ outline: selected.has(p._id) ? '2px solid #e55' : 'none', outlineOffset:'2px' }}>
+                    <img src={p.url} alt="" loading="lazy" />
+                    <div style={{ position:'absolute', top:4, left:4 }} onClick={() => toggleSelect(p._id)}>
+                      <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                        {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
+                      </div>
+                    </div>
                     <div className="thumb-del">
-                      <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => delPhoto(p._id)}>Delete</button>
+                      <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(() => loadPhotos(currentFolder._id)); }}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -524,11 +602,12 @@ function CollectionsTab() {
           )}
         </div>
       )}
+
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:'10px', marginBottom:'1.5rem' }}>
         {currentChildren.map(f => (
           <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer', transition:'border-color 0.2s' }}
             onMouseEnter={e=>e.currentTarget.style.borderColor='#333'} onMouseLeave={e=>e.currentTarget.style.borderColor='#1a1a1a'}>
-            <div style={{ height:'90px', overflow:'hidden', position:'relative' }}>
+            <div style={{ height:'90px', overflow:'hidden' }}>
               {f.coverPhoto ? (
                 <img src={f.coverPhoto} alt={f.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
               ) : (
@@ -537,36 +616,48 @@ function CollectionsTab() {
             </div>
             <div style={{ padding:'10px 12px' }}>
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', marginBottom:'3px' }}>{f.name}</p>
-              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getChildren(f._id).length} sub-collections</p>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getChildren(f._id).length} sub-folders</p>
             </div>
-            <div style={{ padding:'0 10px 10px', display:'flex', gap:'6px', justifyContent:'flex-end' }}>
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={e=>del(f._id,e)}>Delete</button>
+            <div style={{ padding:'0 10px 10px', display:'flex', justifyContent:'flex-end' }}>
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={e=>delFolder(f._id,e)}>Delete</button>
             </div>
           </div>
         ))}
         <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px' }}
           onMouseEnter={e=>e.currentTarget.style.borderColor='#444'} onMouseLeave={e=>e.currentTarget.style.borderColor='#222'}>
           <span style={{ fontSize:'1.5rem', color:'rgba(255,255,255,0.15)' }}>+</span>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Collection</p>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Folder</p>
         </div>
       </div>
+
       {showNew && (
         <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
-          <p className="a-label" style={{ marginBottom:'1rem' }}>New collection {currentFolder?`inside ${currentFolder.name}`:'at root level'}</p>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>
+            {currentFolder ? `New folder inside "${currentFolder.name}"` : `New folder inside ${rootFolderName}`}
+          </p>
           <div style={{ display:'flex', gap:'10px', alignItems:'flex-end' }}>
-            <div style={{ flex:1 }}><input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. Wedding, Street, Portraits..." onKeyDown={e=>e.key==='Enter'&&create()} autoFocus /></div>
+            <div style={{ flex:1 }}><input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e=>setNewName(e.target.value)} placeholder={rootFolderName==='Weddings' ? 'e.g. Arun & Priya' : 'Folder name...'} onKeyDown={e=>e.key==='Enter'&&create()} autoFocus /></div>
             <button className="a-btn" onClick={create}>Create</button>
             <button className="a-btn a-btn-ghost" onClick={()=>{setShowNew(false);setNewName('');}}>Cancel</button>
           </div>
         </div>
       )}
-      {currentChildren.length===0 && !showNew && !currentFolder && (
+
+      {!rootFolder && !showNew && currentChildren.length===0 && (
         <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No collections yet — click + New Collection to start</p>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Click + New Folder to get started</p>
         </div>
       )}
     </>
   );
+}
+
+function WeddingsTab() {
+  return <FolderManager rootFolderName="Weddings" sectionTitle="Weddings" sectionSub="Create couple folders (e.g. Arun & Priya) → then add sub-folders (Wedding, Haldi, Mehendi) → upload photos" />;
+}
+
+function CollectionsTab() {
+  return <FolderManager rootFolderName="Collections" sectionTitle="Collections" sectionSub="Create collections and upload photos — shown on the website with cover photos" />;
 }
 
 function SocialTab() {
@@ -577,11 +668,11 @@ function SocialTab() {
   useEffect(() => { load(); }, []);
   const add = async () => {
     if (!form.name||!form.url) return toast('Name and URL required');
-    try { await api.post('/social', form); toast('Added'); setForm({name:'',url:''}); load(); }
+    try { await api.post('/social', form); toast('Added!'); setForm({name:'',url:''}); load(); }
     catch(e) { toast(e.response?.data?.error||'Error'); }
   };
   const del = async id => { try { await api.delete('/social/'+id); load(); } catch { toast('Error'); } };
-  const update = async (id, url) => { try { await api.patch('/social/'+id, { url }); toast('Saved'); } catch { toast('Error'); } };
+  const update = async (id, url) => { try { await api.patch('/social/'+id, { url }); toast('Saved!'); } catch { toast('Error'); } };
   return (
     <>
       <SectionHeader title="Social Links" sub="Manage your contact and social media links" />
@@ -594,10 +685,10 @@ function SocialTab() {
       ))}
       <div style={{ marginTop:'2rem', paddingTop:'1.5rem', borderTop:'1px solid #111' }}>
         <p className="a-label" style={{ marginBottom:'1rem' }}>Add New Platform</p>
-        <TwoCol>
-          <Row label="Platform Name"><input className="a-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Instagram" /></Row>
-          <Row label="URL"><input className="a-input" value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))} placeholder="https://instagram.com/@handle" /></Row>
-        </TwoCol>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 2rem' }}>
+          <div style={{ marginBottom:'1.4rem' }}><label className="a-label">Platform Name</label><input className="a-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Instagram" /></div>
+          <div style={{ marginBottom:'1.4rem' }}><label className="a-label">URL</label><input className="a-input" value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))} placeholder="https://instagram.com/@handle" /></div>
+        </div>
         <button className="a-btn" onClick={add}>+ Add Platform</button>
       </div>
     </>
@@ -609,23 +700,19 @@ function BookingsTab() {
   const [bookings, setBookings] = useState([]);
   const load = () => api.get('/bookings').then(r => setBookings(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
-  const patch = async (id, status) => { try { await api.patch('/bookings/'+id, { status }); load(); toast('Updated'); } catch { toast('Error'); } };
+  const patch = async (id, status) => { try { await api.patch('/bookings/'+id, { status }); load(); toast('Updated!'); } catch { toast('Error'); } };
   const del = async id => { if (!confirm('Delete?')) return; try { await api.delete('/bookings/'+id); load(); } catch { toast('Error'); } };
   const pillClass = s => s==='confirmed'?'status-pill pill-confirmed':s==='cancelled'?'status-pill pill-cancelled':'status-pill pill-new';
   return (
     <>
-      <SectionHeader title="Bookings" sub={`${bookings.length} total bookings`} />
-      {bookings.length===0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No bookings yet</p>
-        </div>
-      )}
+      <SectionHeader title="Bookings" sub={`${bookings.length} total booking requests`} />
+      {bookings.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No bookings yet</p></div>}
       {bookings.map(b => (
         <div key={b._id} className="booking-card">
           <div style={{ display:'flex', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
             <div>
               <p className="bk-name">{b.firstName} {b.lastName}</p>
-              <p className="bk-meta">{b.date||'Flexible'}</p>
+              <p className="bk-meta">{b.date||'Flexible date'}</p>
               <p className="bk-meta">{b.email}{b.phone?' — '+b.phone:''}</p>
               {b.message&&<p className="bk-msg">"{b.message}"</p>}
               <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.68rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.2)', marginTop:'0.5rem' }}>{new Date(b.createdAt).toLocaleDateString()}</p>
@@ -654,41 +741,41 @@ function SecurityTab() {
   const [loading, setLoading] = useState(false);
   const setupMfa = async () => {
     setLoading(true);
-    try { const { data } = await api.post('/auth/mfa/setup'); setQrCode(data.qrCode); setSecret(data.secret); toast('Scan the QR code with Google Authenticator'); }
-    catch { toast('Error setting up MFA'); }
+    try { const { data } = await api.post('/auth/mfa/setup'); setQrCode(data.qrCode); setSecret(data.secret); toast('Scan the QR code!'); }
+    catch { toast('Error'); }
     finally { setLoading(false); }
   };
   const verifyMfa = async () => {
-    if (code.length!==6) return toast('Enter a 6-digit code');
+    if (code.length!==6) return toast('Enter 6-digit code');
     try { await api.post('/auth/mfa/verify', { token:code }); toast('MFA enabled!'); setMfaOn(true); setQrCode(''); setCode(''); }
-    catch { toast('Invalid code. Try again.'); }
+    catch { toast('Invalid code'); }
   };
   const disableMfa = async () => {
     if (!confirm('Disable MFA?')) return;
-    try { await api.post('/auth/mfa/disable'); toast('MFA disabled.'); setMfaOn(false); setQrCode(''); setSecret(''); }
+    try { await api.post('/auth/mfa/disable'); toast('MFA disabled'); setMfaOn(false); }
     catch { toast('Error'); }
   };
   return (
     <>
-      <SectionHeader title="Security" sub="Set up two-factor authentication for your admin login" />
+      <SectionHeader title="Security" sub="Two-factor authentication — adds extra protection to your login" />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
         <p style={{ fontSize:'0.95rem', color:'rgba(255,255,255,0.5)', lineHeight:1.8, marginBottom:'1.5rem', fontWeight:300 }}>
-          After entering your password you will be asked for a 6-digit code from Google Authenticator.
+          After enabling this, every login will ask for a 6-digit code from your Google Authenticator app — even if someone has your password.
         </p>
         {!mfaOn&&!qrCode&&<button className="a-btn" onClick={setupMfa} disabled={loading}>{loading?'Setting up...':'Setup Google Authenticator'}</button>}
         {qrCode&&(
           <div>
-            <p className="a-label" style={{ marginBottom:'1rem' }}>Step 1 — Scan this QR code with Google Authenticator</p>
-            <img src={qrCode} alt="QR Code" style={{ width:'180px', height:'180px', background:'#fff', padding:'8px', borderRadius:'8px', marginBottom:'1rem' }} />
-            <p style={{ fontSize:'0.82rem', color:'rgba(255,255,255,0.25)', marginBottom:'1.5rem', fontWeight:300 }}>Cannot scan? Enter manually: <span style={{ color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em' }}>{secret}</span></p>
-            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Step 2 — Enter the 6-digit code from the app</p>
+            <p className="a-label" style={{ marginBottom:'1rem' }}>Step 1 — Scan with Google Authenticator</p>
+            <img src={qrCode} alt="QR" style={{ width:'180px', height:'180px', background:'#fff', padding:'8px', borderRadius:'8px', marginBottom:'1rem' }} />
+            <p style={{ fontSize:'0.82rem', color:'rgba(255,255,255,0.25)', marginBottom:'1.5rem' }}>Manual code: <span style={{ color:'rgba(255,255,255,0.5)' }}>{secret}</span></p>
+            <p className="a-label" style={{ marginBottom:'0.8rem' }}>Step 2 — Enter the 6-digit code</p>
             <input className="a-input" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" maxLength={6} style={{ maxWidth:'200px', textAlign:'center', fontSize:'1.4rem', letterSpacing:'0.5em' }} />
-            <div style={{ marginTop:'1rem' }}><button className="a-btn" onClick={verifyMfa}>Verify and Enable MFA</button></div>
+            <div style={{ marginTop:'1rem' }}><button className="a-btn" onClick={verifyMfa}>Verify & Enable</button></div>
           </div>
         )}
         {mfaOn&&(
           <div>
-            <p style={{ fontSize:'0.95rem', color:'rgba(100,200,100,0.8)', marginBottom:'1.5rem', fontWeight:300 }}>✓ MFA is active on your account.</p>
+            <p style={{ color:'rgba(100,200,100,0.8)', marginBottom:'1.5rem' }}>✓ MFA is active</p>
             <button className="a-btn a-btn-red" onClick={disableMfa}>Disable MFA</button>
           </div>
         )}
