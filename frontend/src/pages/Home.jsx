@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -30,43 +30,13 @@ function Hero() {
 
 function Carousel() {
   const [photos, setPhotos] = useState([]);
-  const [preview, setPreview] = useState(null);
-  const [previewStyle, setPreviewStyle] = useState({});
-  const stripRef = useRef(null);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
 
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
 
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
-
-  const handleMouseEnter = (photo, e) => {
-    const frameRect = e.currentTarget.getBoundingClientRect();
-    const stripRect = stripRef.current.getBoundingClientRect();
-    const POPUP_W = 340;
-
-    let left = frameRect.left + frameRect.width / 2 - POPUP_W / 2;
-    if (left < 8) left = 8;
-    if (left + POPUP_W > window.innerWidth - 8) left = window.innerWidth - POPUP_W - 8;
-
-    setPreview(photo);
-    setPreviewStyle({
-      position: 'fixed',
-      left: left,
-      top: stripRect.top - 16,
-      transform: 'translateY(-100%)',
-      width: POPUP_W,
-      zIndex: 999,
-      borderRadius: '8px',
-      overflow: 'hidden',
-      boxShadow: '0 24px 80px rgba(0,0,0,0.9)',
-      border: '1px solid rgba(255,255,255,0.12)',
-      pointerEvents: 'none',
-      background: '#000',
-    });
-  };
-
-  const handleMouseLeave = () => setPreview(null);
 
   if (photos.length === 0) {
     return (
@@ -80,60 +50,65 @@ function Carousel() {
     );
   }
 
-  const FRAME_W = 200, FRAME_H = 160, GAP = 6;
+  const FRAME_W = 200, GAP = 6;
   const doubled = [...photos, ...photos];
 
   return (
-    <>
+    <div style={{ marginTop:'24px', marginBottom:'24px' }}>
       <style>{`
         @keyframes carouselScroll {
           0%{transform:translateX(0)}
           100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)}
         }
         .c-track {
-          display:flex;
-          gap:${GAP}px;
-          width:${doubled.length*(FRAME_W+GAP)}px;
-          animation:carouselScroll ${photos.length*5}s linear infinite;
+          display: flex;
+          gap: ${GAP}px;
+          width: ${doubled.length*(FRAME_W+GAP)}px;
+          animation: carouselScroll ${photos.length*5}s linear infinite;
+          align-items: center;
         }
+        .c-track.paused { animation-play-state: paused; }
         .c-frame {
-          width:${FRAME_W}px;
-          height:${FRAME_H}px;
-          flex-shrink:0;
-          cursor:pointer;
-          border-radius:4px;
-          overflow:hidden;
-          border:1px solid rgba(255,255,255,0.07);
-          transition: border-color 0.2s;
+          flex-shrink: 0;
+          border-radius: 4px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.07);
+          cursor: pointer;
+          transition: width 0.4s ease, height 0.4s ease, border-color 0.2s;
         }
-        .c-frame:hover { border-color: rgba(255,255,255,0.3); }
         .c-frame img {
-          width:100%;
-          height:100%;
-          object-fit:cover;
-          object-position:center top;
-          display:block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center top;
+          display: block;
+          transition: width 0.4s, height 0.4s;
         }
+        .c-frame.normal { width: ${FRAME_W}px; height: 160px; }
+        .c-frame.shrunk { width: ${Math.round(FRAME_W*0.75)}px; height: 120px; opacity: 0.5; }
+        .c-frame.expanded { width: ${Math.round(FRAME_W*1.4)}px; height: 280px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
       `}</style>
 
-      <div ref={stripRef} style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0', marginTop:'24px', marginBottom:'24px' }}>
-        <div className="c-track">
+      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'20px 0' }}>
+        <div
+          className={`c-track${hoveredIdx !== null ? ' paused' : ''}`}
+          onMouseLeave={() => setHoveredIdx(null)}
+        >
           {doubled.map((p, i) => (
-            <div key={i} className="c-frame"
-              onMouseEnter={e => handleMouseEnter(p, e)}
-              onMouseLeave={handleMouseLeave}>
+            <div
+              key={i}
+              className={`c-frame ${
+                hoveredIdx === null ? 'normal' :
+                i % photos.length === hoveredIdx % photos.length ? 'expanded' : 'shrunk'
+              }`}
+              onMouseEnter={() => setHoveredIdx(i)}
+            >
               <img src={p.url} alt="" loading="lazy" />
             </div>
           ))}
         </div>
       </div>
-
-      {preview && (
-        <div style={previewStyle}>
-          <img src={preview.url} alt="" style={{ width:'100%', height:'auto', display:'block', maxHeight:'500px', objectFit:'contain' }} />
-        </div>
-      )}
-    </>
+    </div>
   );
 }
 
