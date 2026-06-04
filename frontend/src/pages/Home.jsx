@@ -30,10 +30,29 @@ function Hero() {
 
 function Carousel() {
   const [photos, setPhotos] = useState([]);
+  const [lb, setLb] = useState({ open: false, idx: 0 });
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
+
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
+
+  const openLb = idx => setLb({ open: true, idx });
+  const closeLb = () => setLb(l => ({ ...l, open: false }));
+  const prev = () => setLb(l => ({ ...l, idx: (l.idx - 1 + photos.length) % photos.length }));
+  const next = () => setLb(l => ({ ...l, idx: (l.idx + 1) % photos.length }));
+
+  useEffect(() => {
+    const fn = e => {
+      if (!lb.open) return;
+      if (e.key === 'Escape') closeLb();
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next();
+    };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  });
+
   if (photos.length === 0) {
     return (
       <div className="marquee-strip" style={{ marginTop:'24px', marginBottom:'24px' }}>
@@ -45,23 +64,42 @@ function Carousel() {
       </div>
     );
   }
-  const FRAME_W = 260, FRAME_H = 200, GAP = 10;
+
+  const FRAME_W = 260, FRAME_H = 200, GAP = 6;
   const doubled = [...photos, ...photos];
+
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0', marginTop:'24px', marginBottom:'24px' }}>
-      <style>{`
-        @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
-        .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); background: #000; }
-        .c-frame:hover { transform: scale(1.35) !important; z-index: 10; position: relative; }
-      `}</style>
-      <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
-        {doubled.map((p, i) => (
-          <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center center', display:'block' }} />
-          </div>
-        ))}
+    <>
+      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0', marginTop:'24px', marginBottom:'24px' }}>
+        <style>{`
+          @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
+          .c-frame { cursor: pointer; position: relative; }
+          .c-frame::after { content:''; position:absolute; inset:0; background:rgba(0,0,0,0); transition:background 0.2s; border-radius:4px; }
+          .c-frame:hover::after { background:rgba(0,0,0,0.25); }
+        `}</style>
+        <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*5}s linear infinite` }}>
+          {doubled.map((p, i) => (
+            <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden' }}
+              onClick={() => openLb(i % photos.length)}>
+              <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center center', display:'block' }} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
+        {lb.open && photos[lb.idx] && (
+          <>
+            <img src={photos[lb.idx].url} alt="" onClick={e => e.stopPropagation()} style={{ maxHeight:'90vh', maxWidth:'90vw', objectFit:'contain' }} />
+            <button className="lb-close" onClick={closeLb}>Close ✕</button>
+            {photos.length > 1 && <>
+              <button className="lb-prev" onClick={e => { e.stopPropagation(); prev(); }}>← Prev</button>
+              <button className="lb-next" onClick={e => { e.stopPropagation(); next(); }}>Next →</button>
+            </>}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
