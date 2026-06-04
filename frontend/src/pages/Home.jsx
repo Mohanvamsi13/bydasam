@@ -91,7 +91,7 @@ function Carousel() {
 
       <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'20px 0' }}>
         <div
-          className={`c-track${hoveredIdx !== null ? ' paused' : ''}`}
+          className="c-track"
           onMouseLeave={() => setHoveredIdx(null)}
         >
           {doubled.map((p, i) => (
