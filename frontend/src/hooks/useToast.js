@@ -1,17 +1,21 @@
-import { useCallback } from 'react';
-let toastEl = null;
-let hideTimer = null;
+import { useEffect, useRef } from 'react';
+
 export function useToast() {
-  const show = useCallback((msg) => {
-    if (!toastEl) {
-      toastEl = document.createElement('div');
-      toastEl.className = 'toast';
-      document.body.appendChild(toastEl);
-    }
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => toastEl.classList.remove('show'), 10000);
+  const toastRef = useRef(null);
+
+  useEffect(() => {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    document.body.appendChild(el);
+    toastRef.current = el;
+    return () => { if (el.parentNode) el.parentNode.removeChild(el); };
   }, []);
-  return show;
+
+  return (msg) => {
+    const el = toastRef.current;
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  };
 }
