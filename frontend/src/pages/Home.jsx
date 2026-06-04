@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../utils/api';
@@ -30,11 +30,27 @@ function Hero() {
 
 function Carousel() {
   const [photos, setPhotos] = useState([]);
+  const [preview, setPreview] = useState(null);
+  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
   }, []);
 
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
+
+  const handleMouseEnter = (photo, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    setPreview(photo);
+    setPreviewPos({
+      x: rect.left - containerRect.left + rect.width / 2,
+      y: rect.top - containerRect.top,
+    });
+  };
+
+  const handleMouseLeave = () => setPreview(null);
 
   if (photos.length === 0) {
     return (
@@ -48,28 +64,75 @@ function Carousel() {
     );
   }
 
-  const FRAME_W = 200, GAP = 6;
+  const FRAME_W = 200, FRAME_H = 160, GAP = 6;
   const doubled = [...photos, ...photos];
 
   return (
-    <div style={{ overflow:'visible', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0', marginTop:'24px', marginBottom:'24px', position:'relative', zIndex:10 }}>
+    <div ref={containerRef} style={{ position:'relative', marginTop:'24px', marginBottom:'24px' }}>
       <style>{`
-        @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
-        .c-track { display:flex; gap:${GAP}px; width:${doubled.length*(FRAME_W+GAP)}px; animation:carouselScroll ${photos.length*5}s linear infinite; }
-        .c-track:hover { animation-play-state: paused; }
-        .c-frame { width:${FRAME_W}px; flex-shrink:0; cursor:pointer; position:relative; transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s; border-radius:4px; overflow:hidden; background:#111; }
-        .c-frame img { width:100%; height:auto; display:block; }
-        .c-frame:hover { transform: scale(1.5) translateY(-20%); z-index: 100; }
+        @keyframes carouselScroll {
+          0%{transform:translateX(0)}
+          100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)}
+        }
+        .c-track {
+          display:flex;
+          gap:${GAP}px;
+          width:${doubled.length*(FRAME_W+GAP)}px;
+          animation:carouselScroll ${photos.length*5}s linear infinite;
+        }
+        .c-frame {
+          width:${FRAME_W}px;
+          height:${FRAME_H}px;
+          flex-shrink:0;
+          cursor:pointer;
+          border-radius:4px;
+          overflow:hidden;
+          border:1px solid rgba(255,255,255,0.07);
+        }
+        .c-frame img {
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          object-position:center top;
+          display:block;
+        }
+        .c-preview {
+          position:absolute;
+          z-index:200;
+          pointer-events:none;
+          transform:translateX(-50%) translateY(-100%) translateY(-16px);
+          transition:opacity 0.2s;
+          border-radius:8px;
+          overflow:hidden;
+          box-shadow:0 20px 60px rgba(0,0,0,0.8);
+          border:1px solid rgba(255,255,255,0.1);
+        }
+        .c-preview img {
+          display:block;
+          width:360px;
+          height:auto;
+          max-height:500px;
+          object-fit:contain;
+        }
       `}</style>
-      <div style={{ overflow:'hidden', padding:'30px 0' }}>
+
+      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0' }}>
         <div className="c-track">
           {doubled.map((p, i) => (
-            <div key={i} className="c-frame">
+            <div key={i} className="c-frame"
+              onMouseEnter={e => handleMouseEnter(p, e)}
+              onMouseLeave={handleMouseLeave}>
               <img src={p.url} alt="" loading="lazy" />
             </div>
           ))}
         </div>
       </div>
+
+      {preview && (
+        <div className="c-preview" style={{ left: previewPos.x, top: previewPos.y }}>
+          <img src={preview.url} alt="" />
+        </div>
+      )}
     </div>
   );
 }
