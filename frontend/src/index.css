@@ -190,6 +190,8 @@
   .form-input { font-size: 1rem; }
 }
 
-/* Hero fix — no overlay, full brightness */
-.hero-image { opacity: 1 !important; }
+
+/* Hero clean — full brightness no overlay */
+.hero-image { opacity: 1 !important; filter: none !important; }
 .hero-overlay { display: none !important; }
+.hero { background: #000; }
