@@ -36,7 +36,7 @@ function Carousel() {
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
   if (photos.length === 0) {
     return (
-      <div className="marquee-strip">
+      <div className="marquee-strip" style={{ marginTop:'24px', marginBottom:'24px' }}>
         <div className="marquee-inner">
           {[...items,...items].map((item, i) => (
             <span key={i} className="marquee-item">{item}{i < items.length*2-1 && <span className="marquee-dot" />}</span>
@@ -48,16 +48,16 @@ function Carousel() {
   const FRAME_W = 260, FRAME_H = 200, GAP = 10;
   const doubled = [...photos, ...photos];
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'12px 0', marginTop:'24px', marginBottom:'24px' }}>
       <style>{`
         @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
-        .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); background: #000; }
         .c-frame:hover { transform: scale(1.35) !important; z-index: 10; position: relative; }
       `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (
           <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
-            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center center', display:'block' }} />
+            <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center center', display:'block' }} />
           </div>
         ))}
       </div>
