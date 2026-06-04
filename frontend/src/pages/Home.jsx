@@ -36,7 +36,7 @@ function Carousel() {
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
   if (photos.length === 0) {
     return (
-      <div style={{ marginTop:'96px' }}>
+      <div style={{ marginTop:'48px' }}>
         <div className="marquee-strip">
           <div className="marquee-inner">
             {[...items,...items].map((item, i) => (
@@ -50,7 +50,7 @@ function Carousel() {
   const FRAME_W = 260, FRAME_H = 200, GAP = 10;
   const doubled = [...photos, ...photos];
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'16px 0', marginTop:'96px', marginBottom:'96px' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'16px 0', marginTop:'48px', marginBottom:'48px' }}>
       <style>{`
         @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
         .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); }
@@ -58,7 +58,7 @@ function Carousel() {
       `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (
-          <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)' }}>
+          <div key={i} className="c-frame" style={{ width:`${FRAME_W}px`, height:`${FRAME_H}px`, flexShrink:0, borderRadius:'4px', overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)', background:'#111' }}>
             <img src={p.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center center', display:'block' }} />
           </div>
         ))}
