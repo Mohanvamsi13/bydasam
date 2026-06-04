@@ -183,56 +183,25 @@ function Portfolio() {
 
 function PhotoGrid({ photos, onOpen }) {
   if (!photos.length) return null;
-  const rows = [];
-  for (let i = 0; i < photos.length; i += 3) {
-    const isFullWidth = (i + 2 >= photos.length);
-    if (isFullWidth) {
-      rows.push(
-        <div key={i} style={{ display:'grid', gridTemplateColumns: photos[i+1] ? '1fr 1fr' : '1fr', gap:'3px', marginBottom:'3px' }}>
-          <div onClick={() => onOpen(i)} style={{ overflow:'hidden', cursor:'pointer', background:'#111' }}>
-            <img src={photos[i].url} alt="" loading="lazy" style={{ width:'100%', height:'auto', display:'block', transition:'transform 0.6s' }}
-              onMouseEnter={e => e.target.style.transform='scale(1.03)'}
-              onMouseLeave={e => e.target.style.transform='scale(1)'}
-            />
+  return (
+    <div style={{ padding:'0 3px' }}>
+      <style>{`
+        .photo-grid { columns: 4; column-gap: 3px; }
+        .photo-grid-item { break-inside: avoid; margin-bottom: 3px; overflow: hidden; cursor: pointer; display: block; }
+        .photo-grid-item img { width: 100%; height: auto; display: block; transition: transform 0.5s; }
+        .photo-grid-item:hover img { transform: scale(1.03); }
+        @media (max-width: 768px) { .photo-grid { columns: 2; } }
+        @media (max-width: 480px) { .photo-grid { columns: 2; } }
+      `}</style>
+      <div className="photo-grid">
+        {photos.map((p, i) => (
+          <div key={p._id || i} className="photo-grid-item" onClick={() => onOpen(i)}>
+            <img src={p.url} alt="" loading="lazy" />
           </div>
-          {photos[i+1] && (
-            <div onClick={() => onOpen(i+1)} style={{ overflow:'hidden', cursor:'pointer', background:'#111' }}>
-              <img src={photos[i+1].url} alt="" loading="lazy" style={{ width:'100%', height:'auto', display:'block', transition:'transform 0.6s' }}
-                onMouseEnter={e => e.target.style.transform='scale(1.03)'}
-                onMouseLeave={e => e.target.style.transform='scale(1)'}
-              />
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      rows.push(
-        <div key={i}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px', marginBottom:'3px' }}>
-            <div onClick={() => onOpen(i)} style={{ overflow:'hidden', cursor:'pointer', background:'#111' }}>
-              <img src={photos[i].url} alt="" loading="lazy" style={{ width:'100%', height:'auto', display:'block', transition:'transform 0.6s' }}
-                onMouseEnter={e => e.target.style.transform='scale(1.03)'}
-                onMouseLeave={e => e.target.style.transform='scale(1)'}
-              />
-            </div>
-            <div onClick={() => onOpen(i+1)} style={{ overflow:'hidden', cursor:'pointer', background:'#111' }}>
-              <img src={photos[i+1].url} alt="" loading="lazy" style={{ width:'100%', height:'auto', display:'block', transition:'transform 0.6s' }}
-                onMouseEnter={e => e.target.style.transform='scale(1.03)'}
-                onMouseLeave={e => e.target.style.transform='scale(1)'}
-              />
-            </div>
-          </div>
-          <div onClick={() => onOpen(i+2)} style={{ overflow:'hidden', cursor:'pointer', background:'#111', marginBottom:'3px' }}>
-            <img src={photos[i+2].url} alt="" loading="lazy" style={{ width:'100%', height:'auto', display:'block', transition:'transform 0.6s' }}
-              onMouseEnter={e => e.target.style.transform='scale(1.03)'}
-              onMouseLeave={e => e.target.style.transform='scale(1)'}
-            />
-          </div>
-        </div>
-      );
-    }
-  }
-  return <div style={{ padding:'0 3px' }}>{rows}</div>;
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function Collections() {
@@ -289,7 +258,7 @@ function Collections() {
       </div>
 
       {currentChildren.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(360px, 1fr))', gap:'4px', padding:'0 4px', marginBottom:'4px' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:'4px', padding:'0 4px', marginBottom:'4px' }}>
           {currentChildren.map(f => (
             <div key={f._id} onClick={() => openFolder(f)} style={{ position:'relative', aspectRatio:'3/2', overflow:'hidden', cursor:'pointer', background:'#111' }}>
               {f.coverPhoto ? (
@@ -300,10 +269,10 @@ function Collections() {
               ) : (
                 <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#181818,#0d0d0d)' }} />
               )}
-              <div style={{ position:'absolute', inset:0, background:'linear-gradient(transparent 40%, rgba(0,0,0,0.75))', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:'2rem' }}>
-                <p style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1.5rem,3vw,2.5rem)', letterSpacing:'0.08em', color:'#fff', marginBottom:'0.3rem' }}>{f.name.toUpperCase()}</p>
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(transparent 40%, rgba(0,0,0,0.75))', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:'1.5rem' }}>
+                <p style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(1.2rem,2.5vw,2rem)', letterSpacing:'0.08em', color:'#fff', marginBottom:'0.2rem' }}>{f.name.toUpperCase()}</p>
                 {getChildren(f._id).length > 0 && (
-                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'1rem', letterSpacing:'0.2em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>{getChildren(f._id).length} albums</p>
+                  <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.9rem', letterSpacing:'0.2em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>{getChildren(f._id).length} albums</p>
                 )}
               </div>
             </div>
@@ -311,9 +280,7 @@ function Collections() {
         </div>
       )}
 
-      {folderPhotos.length > 0 && (
-        <PhotoGrid photos={folderPhotos} onOpen={openLb} />
-      )}
+      {folderPhotos.length > 0 && <PhotoGrid photos={folderPhotos} onOpen={openLb} />}
 
       {currentChildren.length === 0 && folderPhotos.length === 0 && (
         <div style={{ textAlign:'center', padding:'4rem', color:'rgba(255,255,255,0.15)' }}>
