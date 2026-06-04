@@ -20,11 +20,10 @@ function Hero() {
           <source src={heroMedia} type="video/mp4" />
         </video>
       ) : heroMedia && heroMediaType === 'image' ? (
-        <img src={heroMedia} alt="Hero" className="hero-image" />
+        <img src={heroMedia} alt="Hero" className="hero-image" style={{ opacity:1 }} />
       ) : (
         <div className="hero-placeholder" />
       )}
-      <div className="hero-overlay" />
     </section>
   );
 }
@@ -37,23 +36,25 @@ function Carousel() {
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
   if (photos.length === 0) {
     return (
-      <div className="marquee-strip">
-        <div className="marquee-inner">
-          {[...items,...items].map((item, i) => (
-            <span key={i} className="marquee-item">{item}{i < items.length*2-1 && <span className="marquee-dot" />}</span>
-          ))}
+      <div style={{ marginTop:'96px' }}>
+        <div className="marquee-strip">
+          <div className="marquee-inner">
+            {[...items,...items].map((item, i) => (
+              <span key={i} className="marquee-item">{item}{i < items.length*2-1 && <span className="marquee-dot" />}</span>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
-  const FRAME_W = 200, FRAME_H = 160, GAP = 8;
+  const FRAME_W = 260, FRAME_H = 200, GAP = 10;
   const doubled = [...photos, ...photos];
   return (
-    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'14px 0' }}>
+    <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'16px 0', marginTop:'96px', marginBottom:'96px' }}>
       <style>{`
         @keyframes carouselScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)} }
         .c-frame { transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94); }
-        .c-frame:hover { transform: scale(1.12) !important; z-index: 10; position: relative; }
+        .c-frame:hover { transform: scale(1.35) !important; z-index: 10; position: relative; }
       `}</style>
       <div style={{ display:'flex', gap:`${GAP}px`, height:`${FRAME_H}px`, width:`${doubled.length*(FRAME_W+GAP)}px`, animation:`carouselScroll ${photos.length*4}s linear infinite` }}>
         {doubled.map((p, i) => (

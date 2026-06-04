@@ -189,3 +189,7 @@
   .form-label { font-size: 0.9rem; }
   .form-input { font-size: 1rem; }
 }
+
+/* Hero fix — no overlay, full brightness */
+.hero-image { opacity: 1 !important; }
+.hero-overlay { display: none !important; }
