@@ -31,8 +31,8 @@ function Hero() {
 function Carousel() {
   const [photos, setPhotos] = useState([]);
   const [preview, setPreview] = useState(null);
-  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 });
-  const containerRef = useRef(null);
+  const [previewStyle, setPreviewStyle] = useState({});
+  const stripRef = useRef(null);
 
   useEffect(() => {
     api.get('/settings/carousel').then(r => setPhotos(r.data)).catch(() => {});
@@ -41,12 +41,28 @@ function Carousel() {
   const items = ['Street','Wedding','Speed & Steel','Abstract','Portrait','Events','Fine Art','Urban','Documentary','Fashion'];
 
   const handleMouseEnter = (photo, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
+    const frameRect = e.currentTarget.getBoundingClientRect();
+    const stripRect = stripRef.current.getBoundingClientRect();
+    const POPUP_W = 340;
+
+    let left = frameRect.left + frameRect.width / 2 - POPUP_W / 2;
+    if (left < 8) left = 8;
+    if (left + POPUP_W > window.innerWidth - 8) left = window.innerWidth - POPUP_W - 8;
+
     setPreview(photo);
-    setPreviewPos({
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top,
+    setPreviewStyle({
+      position: 'fixed',
+      left: left,
+      top: stripRect.top - 16,
+      transform: 'translateY(-100%)',
+      width: POPUP_W,
+      zIndex: 999,
+      borderRadius: '8px',
+      overflow: 'hidden',
+      boxShadow: '0 24px 80px rgba(0,0,0,0.9)',
+      border: '1px solid rgba(255,255,255,0.12)',
+      pointerEvents: 'none',
+      background: '#000',
     });
   };
 
@@ -68,7 +84,7 @@ function Carousel() {
   const doubled = [...photos, ...photos];
 
   return (
-    <div ref={containerRef} style={{ position:'relative', marginTop:'24px', marginBottom:'24px' }}>
+    <>
       <style>{`
         @keyframes carouselScroll {
           0%{transform:translateX(0)}
@@ -88,7 +104,9 @@ function Carousel() {
           border-radius:4px;
           overflow:hidden;
           border:1px solid rgba(255,255,255,0.07);
+          transition: border-color 0.2s;
         }
+        .c-frame:hover { border-color: rgba(255,255,255,0.3); }
         .c-frame img {
           width:100%;
           height:100%;
@@ -96,27 +114,9 @@ function Carousel() {
           object-position:center top;
           display:block;
         }
-        .c-preview {
-          position:absolute;
-          z-index:200;
-          pointer-events:none;
-          transform:translateX(-50%) translateY(-100%) translateY(-16px);
-          transition:opacity 0.2s;
-          border-radius:8px;
-          overflow:hidden;
-          box-shadow:0 20px 60px rgba(0,0,0,0.8);
-          border:1px solid rgba(255,255,255,0.1);
-        }
-        .c-preview img {
-          display:block;
-          width:360px;
-          height:auto;
-          max-height:500px;
-          object-fit:contain;
-        }
       `}</style>
 
-      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0' }}>
+      <div ref={stripRef} style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'10px 0', marginTop:'24px', marginBottom:'24px' }}>
         <div className="c-track">
           {doubled.map((p, i) => (
             <div key={i} className="c-frame"
@@ -129,11 +129,11 @@ function Carousel() {
       </div>
 
       {preview && (
-        <div className="c-preview" style={{ left: previewPos.x, top: previewPos.y }}>
-          <img src={preview.url} alt="" />
+        <div style={previewStyle}>
+          <img src={preview.url} alt="" style={{ width:'100%', height:'auto', display:'block', maxHeight:'500px', objectFit:'contain' }} />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
