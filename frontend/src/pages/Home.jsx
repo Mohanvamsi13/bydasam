@@ -79,14 +79,13 @@ function Carousel() {
         .c-frame img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center top;
+          object-fit: contain;
           display: block;
           transition: width 0.4s, height 0.4s;
         }
         .c-frame.normal { width: ${FRAME_W}px; height: 160px; }
-        .c-frame.shrunk { width: ${Math.round(FRAME_W*0.75)}px; height: 120px; opacity: 0.5; }
-        .c-frame.expanded { width: ${Math.round(FRAME_W*1.4)}px; height: 280px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
+        .c-frame.shrunk { width: ${Math.round(FRAME_W*0.75)}px; height: 160px; opacity: 0.5; }
+        .c-frame.expanded { width: ${Math.round(FRAME_W*1.4)}px; height: 320px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
       `}</style>
 
       <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'20px 0' }}>
