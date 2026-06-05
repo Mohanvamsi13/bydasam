@@ -50,7 +50,7 @@ function Carousel() {
     );
   }
 
-  const FRAME_H = 180, GAP = 8;
+  const FRAME_H = 200, GAP = 6;
   const doubled = [...photos, ...photos];
 
   return (
@@ -65,35 +65,24 @@ function Carousel() {
           gap: ${GAP}px;
           width: max-content;
           animation: carouselScroll ${photos.length*5}s linear infinite;
-          align-items: center;
+          align-items: stretch;
         }
         .c-frame {
           flex-shrink: 0;
-          border-radius: 6px;
+          border-radius: 4px;
           overflow: hidden;
           cursor: pointer;
-          background: #0d0d0d;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           transition: height 0.4s ease, opacity 0.3s ease;
-          border: 1px solid rgba(255,255,255,0.06);
         }
         .c-frame img {
           display: block;
           height: 100%;
           width: auto;
-          max-width: 320px;
-          object-fit: contain;
-          image-rendering: -webkit-optimize-contrast;
+          object-fit: fill;
         }
         .c-frame.normal { height: ${FRAME_H}px; opacity: 1; }
         .c-frame.shrunk { height: ${Math.round(FRAME_H*0.75)}px; opacity: 0.45; }
-        .c-frame.expanded { height: ${Math.round(FRAME_H*1.9)}px; opacity: 1; z-index: 10; position: relative; border-color: rgba(255,255,255,0.2); }
-        @media (max-width: 768px) {
-          .c-frame.normal { height: ${Math.round(FRAME_H*0.75)}px; }
-          .c-frame.expanded { height: ${Math.round(FRAME_H*1.4)}px; }
-        }
+        .c-frame.expanded { height: ${Math.round(FRAME_H*1.8)}px; opacity: 1; z-index: 10; position: relative; }
       `}</style>
       <div style={{ overflow:"hidden", background:"#000", borderTop:"1px solid #111", borderBottom:"1px solid #111", padding:"12px 0" }}>
         <div className="c-track" onMouseLeave={() => setHoveredIdx(null)}>
