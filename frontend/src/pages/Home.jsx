@@ -72,13 +72,13 @@ function Carousel() {
           border-radius: 4px;
           overflow: hidden;
           cursor: pointer;
+          background: #111;
           transition: width 0.4s ease, height 0.4s ease;
         }
         .c-frame img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center center;
+          object-fit: contain;
           display: block;
         }
         .c-frame.normal { width: ${FRAME_W}px; height: ${FRAME_H}px; }
