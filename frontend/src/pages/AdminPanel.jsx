@@ -386,6 +386,13 @@ function PortfolioTab() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [selected, setSelected] = useState(new Set());
+  const [cropPhoto, setCropPhoto] = useState(null);
+
+  const CROP_POSITIONS = [
+    { label:'↖', value:'left top' },{ label:'↑', value:'center top' },{ label:'↗', value:'right top' },
+    { label:'←', value:'left center' },{ label:'·', value:'center center' },{ label:'→', value:'right center' },
+    { label:'↙', value:'left bottom' },{ label:'↓', value:'center bottom' },{ label:'↘', value:'right bottom' },
+  ];
 
   const load = () => Promise.all([
     api.get('/photos').then(r => setPhotos(r.data)),
@@ -416,121 +423,9 @@ function PortfolioTab() {
     catch { toast('Error'); }
   };
 
-  const toggleSelect = id => {
-    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  };
-
-  const deleteSelected = async () => {
-    if (!selected.size) return;
-    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
-    for (const id of selected) {
-      await api.delete('/photos/'+id).catch(() => {});
-    }
-    setSelected(new Set());
-    toast(`${selected.size} deleted!`);
-    load();
-  };
-
-  return (
-    <>
-      <SectionHeader title="Portfolio" sub={`Featured photos on homepage — ${featured.length}/20 selected · Click photo to feature/unfeature`} />
-      <UploadZone onFiles={upload} busy={busy} status={status} hint="Photos auto-added to portfolio · Select to feature/unfeature" />
-      {selected.size > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
-          <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
-          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
-        </div>
-      )}
-      <div className="thumb-grid">
-        {photos.map(p => (
-          <div key={p._id} className="thumb" style={{ cursor:'pointer', outline: selected.has(p._id) ? '2px solid #e55' : p.featured ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
-            <img src={p.url} alt="" loading="lazy" onClick={() => toggle(p._id, p.featured)} />
-            {p.featured && <div style={{ position:'absolute', top:4, right:4, background:'#fff', color:'#000', fontSize:'0.5rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>★</div>}
-            <div style={{ position:'absolute', top:4, left:4 }} onClick={e => { e.stopPropagation(); toggleSelect(p._id); }}>
-              <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
-              </div>
-            </div>
-            <div className="thumb-del">
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(load); }}>Delete</button>
-            </div>
-          </div>
-        ))}
-      </div>
-      {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
-    </>
-  );
-}
-
-function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
-  const toast = useToast();
-  const [allFolders, setAllFolders] = useState([]);
-  const [currentFolder, setCurrentFolder] = useState(null);
-  const [breadcrumb, setBreadcrumb] = useState([]);
-  const [folderPhotos, setFolderPhotos] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
-  const [showNew, setShowNew] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [selected, setSelected] = useState(new Set());
-
-  const loadFolders = () => api.get('/categories/flat').then(r => setAllFolders(r.data)).catch(() => {});
-  const loadPhotos = folderId => {
-    if (!folderId) { setFolderPhotos([]); return; }
-    api.get('/photos?folder='+folderId).then(r => setFolderPhotos(r.data)).catch(() => {});
-  };
-
-  useEffect(() => { loadFolders(); }, []);
-  useEffect(() => { loadPhotos(currentFolder?._id); }, [currentFolder]);
-
-  const isCollections = rootFolderName === 'Collections';
-  const rootFolder = isCollections ? null : allFolders.find(f => !f.parent && f.name.toLowerCase() === rootFolderName.toLowerCase());
-  const getChildren = parentId => {
-    if (!parentId) {
-      if (isCollections) return allFolders.filter(f => !f.parent && f.name.toLowerCase() !== 'weddings');
-      return rootFolder ? allFolders.filter(f => String(f.parent?._id||f.parent) === String(rootFolder._id)) : [];
-    }
-    return allFolders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
-  };
-
-  const openFolder = folder => { setCurrentFolder(folder); setBreadcrumb(prev => [...prev, folder]); setShowNew(false); setSelected(new Set()); };
-  const goToCrumb = idx => {
-    if (idx===-1) { setCurrentFolder(null); setBreadcrumb([]); setFolderPhotos([]); }
-    else { const t = breadcrumb[idx]; setCurrentFolder(t); setBreadcrumb(breadcrumb.slice(0,idx+1)); loadPhotos(t._id); }
-    setShowNew(false); setSelected(new Set());
-  };
-
-  const create = async () => {
-    if (!newName.trim()) return toast('Enter a name');
-    const parentId = currentFolder ? currentFolder._id : (rootFolder?._id || null);
-    try { await api.post('/categories', { name: newName.trim(), parent: parentId }); }
-    catch(e) { toast(e.response?.data?.error||'Error'); return; }
-    toast('Created!'); setNewName(''); setShowNew(false); loadFolders();
-  };
-
-  const delFolder = async (id, e) => {
-    e.stopPropagation();
-    if (!confirm('Delete this folder and all its contents?')) return;
-    try { await api.delete('/categories/'+id); toast('Deleted'); loadFolders(); }
+  const saveCrop = async (id, position) => {
+    try { await api.patch('/photos/'+id, { cropPosition: position }); toast('Crop saved!'); load(); setCropPhoto(null); }
     catch { toast('Error'); }
-  };
-
-  const upload = async files => {
-    if (!files.length || !currentFolder) return;
-    setBusy(true);
-    try {
-      for (let i = 0; i < files.length; i++) {
-        setStatus(`Uploading ${i+1} of ${files.length}...`);
-        const fd = new FormData();
-        fd.append('photos', files[i]);
-        fd.append('folder', currentFolder._id);
-        await api.post('/photos', fd, { headers:{'Content-Type':'multipart/form-data'} });
-      }
-      toast(`${files.length} photo(s) uploaded!`);
-      loadPhotos(currentFolder._id); loadFolders();
-    } catch { toast('Upload failed'); }
-    finally { setBusy(false); setStatus(''); }
   };
 
   const toggleSelect = id => {
@@ -541,110 +436,55 @@ function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
     if (!selected.size) return;
     if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
     for (const id of selected) await api.delete('/photos/'+id).catch(() => {});
-    setSelected(new Set()); toast(`${selected.size} deleted!`);
-    loadPhotos(currentFolder._id);
+    setSelected(new Set());
+    toast(`${selected.size} deleted!`);
+    load();
   };
-
-  const currentChildren = getChildren(currentFolder?._id);
 
   return (
     <>
-      <SectionHeader title={sectionTitle} sub={sectionSub} />
-
-      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a', flexWrap:'wrap' }}>
-        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:currentFolder?'rgba(255,255,255,0.4)':'#fff', cursor:'pointer' }}>
-          {rootFolderName}
-        </span>
-        {breadcrumb.map((b, i) => (
-          <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            <span style={{ color:'rgba(255,255,255,0.2)' }}>›</span>
-            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:i===breadcrumb.length-1?'#fff':'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
-          </span>
-        ))}
-      </div>
-
-      {currentFolder && (
-        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
-          <p className="a-label" style={{ marginBottom:'1rem' }}>Upload photos to "{currentFolder.name}"</p>
-          <UploadZone onFiles={upload} busy={busy} status={status} hint="Multiple files supported · Auto compressed" />
-          {selected.size > 0 && (
-            <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#0d0d0d', borderRadius:'8px' }}>
-              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
-              <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
-              <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
-            </div>
-          )}
-          {folderPhotos.length > 0 && (
-            <>
-              <p className="a-label" style={{ marginBottom:'0.8rem' }}>{folderPhotos.length} photos · Click checkbox to select multiple</p>
-              <div className="thumb-grid">
-                {folderPhotos.map(p => (
-                  <div key={p._id} className="thumb" style={{ outline: selected.has(p._id) ? '2px solid #e55' : 'none', outlineOffset:'2px' }}>
-                    <img src={p.url} alt="" loading="lazy" />
-                    <div style={{ position:'absolute', top:4, left:4 }} onClick={() => toggleSelect(p._id)}>
-                      <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                        {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
-                      </div>
-                    </div>
-                    <div className="thumb-del">
-                      <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(() => loadPhotos(currentFolder._id)); }}>Delete</button>
-                    </div>
-                  </div>
-                ))}
+      <SectionHeader title="Portfolio" sub={`Featured photos — ${featured.length}/50 · Click photo to feature · Click CROP to set focus`} />
+      <UploadZone onFiles={upload} busy={busy} status={status} hint="Photos auto-added to portfolio · Click to feature/unfeature" />
+      {selected.size > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
+          <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
+          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+        </div>
+      )}
+      <div className="thumb-grid">
+        {photos.map(p => (
+          <div key={p._id} className="thumb" style={{ cursor:'pointer', outline: selected.has(p._id) ? '2px solid #e55' : p.featured ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
+            <img src={p.url} alt="" loading="lazy" style={{ objectPosition: p.cropPosition||'center center' }} onClick={() => toggle(p._id, p.featured)} />
+            {p.featured && <div style={{ position:'absolute', top:4, right:4, background:'#fff', color:'#000', fontSize:'0.5rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>★</div>}
+            <div style={{ position:'absolute', top:4, left:4 }} onClick={e => { e.stopPropagation(); toggleSelect(p._id); }}>
+              <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
               </div>
-            </>
-          )}
-          {folderPhotos.length===0 && !busy && (
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', textAlign:'center', padding:'1rem' }}>No photos yet — upload above</p>
-          )}
-        </div>
-      )}
-
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:'10px', marginBottom:'1.5rem' }}>
-        {currentChildren.map(f => (
-          <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer', transition:'border-color 0.2s' }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor='#333'} onMouseLeave={e=>e.currentTarget.style.borderColor='#1a1a1a'}>
-            <div style={{ height:'90px', overflow:'hidden' }}>
-              {f.coverPhoto ? (
-                <img src={f.coverPhoto} alt={f.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              ) : (
-                <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#151515,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem' }}>📂</div>
-              )}
             </div>
-            <div style={{ padding:'10px 12px' }}>
-              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', marginBottom:'3px' }}>{f.name}</p>
-              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getChildren(f._id).length} sub-folders</p>
-            </div>
-            <div style={{ padding:'0 10px 10px', display:'flex', justifyContent:'flex-end' }}>
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={e=>delFolder(f._id,e)}>Delete</button>
+            <button onClick={e => { e.stopPropagation(); setCropPhoto(cropPhoto===p._id ? null : p._id); }}
+              style={{ position:'absolute', bottom:28, right:4, background:'rgba(0,0,0,0.8)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', fontSize:'0.55rem', padding:'2px 5px', borderRadius:'3px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.1em' }}>
+              CROP
+            </button>
+            {cropPhoto===p._id && (
+              <div style={{ position:'absolute', bottom:50, right:4, zIndex:20, background:'rgba(0,0,0,0.9)', padding:'4px', borderRadius:'4px', border:'1px solid #333' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2px' }}>
+                  {CROP_POSITIONS.map(pos => (
+                    <button key={pos.value} onClick={() => saveCrop(p._id, pos.value)}
+                      style={{ padding:'5px', fontFamily:'monospace', fontSize:'0.75rem', background: (p.cropPosition||'center center')===pos.value ? '#fff' : 'rgba(255,255,255,0.1)', color: (p.cropPosition||'center center')===pos.value ? '#000' : '#fff', border:'none', borderRadius:'2px', cursor:'pointer' }}>
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="thumb-del">
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(load); }}>Delete</button>
             </div>
           </div>
         ))}
-        <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px' }}
-          onMouseEnter={e=>e.currentTarget.style.borderColor='#444'} onMouseLeave={e=>e.currentTarget.style.borderColor='#222'}>
-          <span style={{ fontSize:'1.5rem', color:'rgba(255,255,255,0.15)' }}>+</span>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Folder</p>
-        </div>
       </div>
-
-      {showNew && (
-        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
-          <p className="a-label" style={{ marginBottom:'1rem' }}>
-            {currentFolder ? `New folder inside "${currentFolder.name}"` : `New folder inside ${rootFolderName}`}
-          </p>
-          <div style={{ display:'flex', gap:'10px', alignItems:'flex-end' }}>
-            <div style={{ flex:1 }}><input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e=>setNewName(e.target.value)} placeholder={rootFolderName==='Weddings' ? 'e.g. Arun & Priya' : 'Folder name...'} onKeyDown={e=>e.key==='Enter'&&create()} autoFocus /></div>
-            <button className="a-btn" onClick={create}>Create</button>
-            <button className="a-btn a-btn-ghost" onClick={()=>{setShowNew(false);setNewName('');}}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {!rootFolder && !showNew && currentChildren.length===0 && (
-        <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Click + New Folder to get started</p>
-        </div>
-      )}
+      {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
     </>
   );
 }
