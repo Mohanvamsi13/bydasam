@@ -77,11 +77,10 @@ function Carousel() {
           transition: width 0.4s ease, height 0.4s ease, border-color 0.2s;
         }
         .c-frame img {
-          width: 100%;
           height: 100%;
-          object-fit: contain;
+          width: auto;
           display: block;
-          transition: width 0.4s, height 0.4s;
+          transition: height 0.4s;
         }
         .c-frame.normal { width: ${FRAME_W}px; height: 160px; }
         .c-frame.shrunk { width: ${Math.round(FRAME_W*0.75)}px; height: 160px; opacity: 0.5; }
