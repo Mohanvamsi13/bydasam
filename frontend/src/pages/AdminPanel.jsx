@@ -494,7 +494,7 @@ function WeddingsTab() {
 }
 
 function CollectionsTab() {
-  return <FolderManager rootFolderName="Collections" sectionTitle="Collections" sectionSub="Create collections and upload photos — shown on the website with cover photos" isCollections={true} />;
+  return <FolderManager rootFolderName="Collections" sectionTitle="Collections" sectionSub="Create collections and upload photos — shown on the website with cover photos" />;
 }
 
 function SocialTab() {

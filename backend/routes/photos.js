@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
   try {
     const q = {};
     if (req.query.folder) q.folder = req.query.folder;
-    if (req.query.featured) q.featured = true;
+    if (req.query.featured) { q.featured = true; q.folder = null; }
     const photos = await Photo.find(q).populate('folder','name').sort({ order:1, createdAt:-1 });
     res.json(photos);
   } catch(e) { res.status(500).json({ error: e.message }); }
