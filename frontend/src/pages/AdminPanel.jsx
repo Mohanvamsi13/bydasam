@@ -489,6 +489,191 @@ function PortfolioTab() {
   );
 }
 
+
+function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
+  const toast = useToast();
+  const [allFolders, setAllFolders] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [folderPhotos, setFolderPhotos] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [selected, setSelected] = useState(new Set());
+
+  const loadFolders = () => api.get('/categories/flat').then(r => setAllFolders(r.data)).catch(() => {});
+  const loadPhotos = folderId => {
+    if (!folderId) { setFolderPhotos([]); return; }
+    api.get('/photos?folder='+folderId).then(r => setFolderPhotos(r.data)).catch(() => {});
+  };
+
+  useEffect(() => { loadFolders(); }, []);
+  useEffect(() => { loadPhotos(currentFolder?._id); }, [currentFolder]);
+
+  const isCollections = rootFolderName === 'Collections';
+  const rootFolder = isCollections ? null : allFolders.find(f => !f.parent && f.name.toLowerCase() === rootFolderName.toLowerCase());
+
+  const getChildren = parentId => {
+    if (!parentId) {
+      if (isCollections) return allFolders.filter(f => !f.parent && f.name.toLowerCase() !== 'weddings');
+      return rootFolder ? allFolders.filter(f => String(f.parent?._id||f.parent) === String(rootFolder._id)) : [];
+    }
+    return allFolders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
+  };
+
+  const openFolder = folder => { setCurrentFolder(folder); setBreadcrumb(prev => [...prev, folder]); setShowNew(false); setSelected(new Set()); };
+  const goToCrumb = idx => {
+    if (idx===-1) { setCurrentFolder(null); setBreadcrumb([]); setFolderPhotos([]); }
+    else { const t = breadcrumb[idx]; setCurrentFolder(t); setBreadcrumb(breadcrumb.slice(0,idx+1)); loadPhotos(t._id); }
+    setShowNew(false); setSelected(new Set());
+  };
+
+  const create = async () => {
+    if (!newName.trim()) return toast('Enter a name');
+    const parentId = currentFolder ? currentFolder._id : (rootFolder?._id || null);
+    try { await api.post('/categories', { name: newName.trim(), parent: parentId }); }
+    catch(e) { toast(e.response?.data?.error||'Error'); return; }
+    toast('Created!'); setNewName(''); setShowNew(false); loadFolders();
+  };
+
+  const delFolder = async (id, e) => {
+    e.stopPropagation();
+    if (!confirm('Delete this folder and all its contents?')) return;
+    try { await api.delete('/categories/'+id); toast('Deleted'); loadFolders(); }
+    catch { toast('Error'); }
+  };
+
+  const upload = async files => {
+    if (!files.length || !currentFolder) return;
+    setBusy(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setStatus(`Uploading ${i+1} of ${files.length}...`);
+        const fd = new FormData();
+        fd.append('photos', files[i]);
+        fd.append('folder', currentFolder._id);
+        await api.post('/photos', fd, { headers:{'Content-Type':'multipart/form-data'} });
+      }
+      toast(`${files.length} photo(s) uploaded!`);
+      loadPhotos(currentFolder._id); loadFolders();
+    } catch { toast('Upload failed'); }
+    finally { setBusy(false); setStatus(''); }
+  };
+
+  const toggleSelect = id => {
+    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  };
+
+  const deleteSelected = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
+    for (const id of selected) await api.delete('/photos/'+id).catch(() => {});
+    setSelected(new Set()); toast(`${selected.size} deleted!`);
+    loadPhotos(currentFolder._id);
+  };
+
+  const currentChildren = getChildren(currentFolder?._id);
+
+  return (
+    <>
+      <SectionHeader title={sectionTitle} sub={sectionSub} />
+      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'1.5rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a', flexWrap:'wrap' }}>
+        <span onClick={() => goToCrumb(-1)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:currentFolder?'rgba(255,255,255,0.4)':'#fff', cursor:'pointer' }}>
+          {rootFolderName}
+        </span>
+        {breadcrumb.map((b, i) => (
+          <span key={b._id} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <span style={{ color:'rgba(255,255,255,0.2)' }}>›</span>
+            <span onClick={() => goToCrumb(i)} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:i===breadcrumb.length-1?'#fff':'rgba(255,255,255,0.4)', cursor:'pointer' }}>{b.name}</span>
+          </span>
+        ))}
+      </div>
+
+      {currentFolder && (
+        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem', marginBottom:'1.5rem' }}>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>Upload photos to "{currentFolder.name}"</p>
+          <UploadZone onFiles={upload} busy={busy} status={status} hint="Multiple files supported · Auto compressed" />
+          {selected.size > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#0d0d0d', borderRadius:'8px' }}>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
+              <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
+              <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+            </div>
+          )}
+          {folderPhotos.length > 0 && (
+            <>
+              <p className="a-label" style={{ marginBottom:'0.8rem' }}>{folderPhotos.length} photos</p>
+              <div className="thumb-grid">
+                {folderPhotos.map(p => (
+                  <div key={p._id} className="thumb" style={{ outline: selected.has(p._id) ? '2px solid #e55' : 'none', outlineOffset:'2px' }}>
+                    <img src={p.url} alt="" loading="lazy" />
+                    <div style={{ position:'absolute', top:4, left:4 }} onClick={() => toggleSelect(p._id)}>
+                      <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                        {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
+                      </div>
+                    </div>
+                    <div className="thumb-del">
+                      <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(() => loadPhotos(currentFolder._id)); }}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {folderPhotos.length===0 && !busy && (
+            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', textAlign:'center', padding:'1rem' }}>No photos yet — upload above</p>
+          )}
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:'10px', marginBottom:'1.5rem' }}>
+        {currentChildren.map(f => (
+          <div key={f._id} onClick={() => openFolder(f)} style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', overflow:'hidden', cursor:'pointer' }}>
+            <div style={{ height:'90px', overflow:'hidden' }}>
+              {f.coverPhoto ? (
+                <img src={f.coverPhoto} alt={f.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              ) : (
+                <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg,#151515,#0d0d0d)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem' }}>📂</div>
+              )}
+            </div>
+            <div style={{ padding:'10px 12px' }}>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', marginBottom:'3px' }}>{f.name}</p>
+              <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>{getChildren(f._id).length} sub-folders</p>
+            </div>
+            <div style={{ padding:'0 10px 10px', display:'flex', justifyContent:'flex-end' }}>
+              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.6rem' }} onClick={e=>delFolder(f._id,e)}>Delete</button>
+            </div>
+          </div>
+        ))}
+        <div onClick={() => setShowNew(true)} style={{ background:'transparent', border:'1px dashed #222', borderRadius:'10px', minHeight:'160px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'8px' }}>
+          <span style={{ fontSize:'1.5rem', color:'rgba(255,255,255,0.15)' }}>+</span>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)' }}>New Folder</p>
+        </div>
+      </div>
+
+      {showNew && (
+        <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1.5rem' }}>
+          <p className="a-label" style={{ marginBottom:'1rem' }}>
+            {currentFolder ? `New folder inside "${currentFolder.name}"` : `New folder inside ${rootFolderName}`}
+          </p>
+          <div style={{ display:'flex', gap:'10px', alignItems:'flex-end' }}>
+            <div style={{ flex:1 }}><input className="a-input" style={{ marginBottom:0 }} value={newName} onChange={e=>setNewName(e.target.value)} placeholder={rootFolderName==='Weddings' ? 'e.g. Arun & Priya' : 'Folder name...'} onKeyDown={e=>e.key==='Enter'&&create()} autoFocus /></div>
+            <button className="a-btn" onClick={create}>Create</button>
+            <button className="a-btn a-btn-ghost" onClick={()=>{setShowNew(false);setNewName('');}}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {currentChildren.length===0 && !showNew && (
+        <div style={{ textAlign:'center', padding:'2rem', color:'rgba(255,255,255,0.15)' }}>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Click + New Folder to get started</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 function WeddingsTab() {
   return <FolderManager rootFolderName="Weddings" sectionTitle="Weddings" sectionSub="Create couple folders (e.g. Arun & Priya) → then add sub-folders (Wedding, Haldi, Mehendi) → upload photos" />;
 }
