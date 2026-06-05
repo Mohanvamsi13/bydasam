@@ -382,22 +382,17 @@ function AboutTab() {
 function PortfolioTab() {
   const toast = useToast();
   const [photos, setPhotos] = useState([]);
-  const [featured, setFeatured] = useState([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
-  const [selected, setSelected] = useState(new Set());
   const [cropPhoto, setCropPhoto] = useState(null);
 
-  const CROP_POSITIONS = [
-    { label:'↖', value:'left top' },{ label:'↑', value:'center top' },{ label:'↗', value:'right top' },
-    { label:'←', value:'left center' },{ label:'·', value:'center center' },{ label:'→', value:'right center' },
-    { label:'↙', value:'left bottom' },{ label:'↓', value:'center bottom' },{ label:'↘', value:'right bottom' },
+  const CROPS = [
+    {l:'↖',v:'left top'},{l:'↑',v:'center top'},{l:'↗',v:'right top'},
+    {l:'←',v:'left center'},{l:'·',v:'center center'},{l:'→',v:'right center'},
+    {l:'↙',v:'left bottom'},{l:'↓',v:'center bottom'},{l:'↘',v:'right bottom'},
   ];
 
-  const load = () => Promise.all([
-    api.get('/photos?nofolder=true').then(r => setPhotos(r.data)),
-    api.get('/photos?featured=true').then(r => setFeatured(r.data)),
-  ]).catch(() => {});
+  const load = () => api.get('/photos?nofolder=true').then(r => setPhotos(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const upload = async files => {
@@ -417,89 +412,75 @@ function PortfolioTab() {
     finally { setBusy(false); setStatus(''); }
   };
 
-  const toggle = async (id, isFeatured) => {
-    if (!isFeatured && featured.length>=50) return toast('Maximum 50 portfolio photos!');
-    try { await api.patch('/photos/'+id, { featured:!isFeatured }); load(); }
+  const toggleFeatured = async (p) => {
+    const featured = photos.filter(x => x.featured).length;
+    if (!p.featured && featured >= 50) return toast('Maximum 50 portfolio photos!');
+    try { await api.patch('/photos/'+p._id, { featured: !p.featured }); load(); }
     catch { toast('Error'); }
   };
 
   const saveCrop = async (id, position) => {
-    try { await api.patch('/photos/'+id, { cropPosition: position }); toast('Crop saved!'); load(); setCropPhoto(null); }
+    try { await api.patch('/photos/'+id, { cropPosition: position }); toast('Saved!'); load(); setCropPhoto(null); }
     catch { toast('Error'); }
   };
 
-  const toggleSelect = id => {
-    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  const deletePhoto = async (id) => {
+    if (!confirm('Delete this photo?')) return;
+    try { await api.delete('/photos/'+id); load(); toast('Deleted!'); }
+    catch { toast('Error'); }
   };
 
-  const deleteSelected = async () => {
-    if (!selected.size) return;
-    if (!confirm(`Delete ${selected.size} photo(s)?`)) return;
-    for (const id of selected) await api.delete('/photos/'+id).catch(() => {});
-    setSelected(new Set());
-    toast(`${selected.size} deleted!`);
-    load();
-  };
+  const featured = photos.filter(p => p.featured);
 
   return (
     <>
-      <SectionHeader title="Portfolio" sub={`Featured photos — ${featured.length}/50 · Click photo to feature · Click CROP to set focus`} />
-      <UploadZone onFiles={upload} busy={busy} status={status} hint="Photos auto-added to portfolio · Click to feature/unfeature" />
-      {selected.size > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'1rem', padding:'0.8rem 1rem', background:'#111', borderRadius:'8px', border:'1px solid #1a1a1a' }}>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'#fff' }}>{selected.size} selected</p>
-          <button className="a-btn a-btn-red a-btn-sm" onClick={deleteSelected}>Delete Selected</button>
-          <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
-        </div>
-      )}
+      <SectionHeader title="Portfolio" sub={`${featured.length}/50 featured · Click ★ to feature · Click CROP to adjust focus`} />
+      <UploadZone onFiles={upload} busy={busy} status={status} hint="Auto compressed · Multiple files supported" />
       <div className="thumb-grid">
         {photos.map(p => (
-          <div key={p._id} className="thumb" style={{ cursor:'pointer', outline: selected.has(p._id) ? '2px solid #e55' : p.featured ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
-            <img src={p.url} alt="" loading="lazy" style={{ objectPosition: p.cropPosition||'center center' }} onClick={() => toggle(p._id, p.featured)} />
-            {p.featured && <div style={{ position:'absolute', top:4, right:4, background:'#fff', color:'#000', fontSize:'0.5rem', padding:'2px 6px', fontFamily:"'Barlow Condensed',sans-serif" }}>★</div>}
-            <div style={{ position:'absolute', top:4, left:4 }} onClick={e => { e.stopPropagation(); toggleSelect(p._id); }}>
-              <div style={{ width:'18px', height:'18px', borderRadius:'3px', background: selected.has(p._id) ? '#e55' : 'rgba(0,0,0,0.6)', border:'1.5px solid rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                {selected.has(p._id) && <span style={{ color:'#fff', fontSize:'11px', fontWeight:'bold' }}>✓</span>}
+          <div key={p._id} className="thumb" style={{ outline: p.featured ? '2px solid #fff' : 'none', outlineOffset:'2px' }}>
+            <img src={p.url} alt="" loading="lazy" style={{ objectPosition: p.cropPosition||'center center' }} />
+            <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'6px' }}>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <button onClick={() => toggleFeatured(p)}
+                  style={{ background: p.featured ? '#fff' : 'rgba(0,0,0,0.7)', color: p.featured ? '#000' : '#fff', border:'1px solid rgba(255,255,255,0.5)', borderRadius:'4px', width:'28px', height:'28px', cursor:'pointer', fontSize:'0.8rem', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  ★
+                </button>
+                <button onClick={() => deletePhoto(p._id)}
+                  style={{ background:'rgba(200,50,50,0.8)', color:'#fff', border:'none', borderRadius:'4px', width:'28px', height:'28px', cursor:'pointer', fontSize:'0.7rem', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  ✕
+                </button>
               </div>
-            </div>
-            <button onClick={e => { e.stopPropagation(); setCropPhoto(cropPhoto===p._id ? null : p._id); }}
-              style={{ position:'absolute', bottom:28, right:4, background:'rgba(0,0,0,0.8)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', fontSize:'0.55rem', padding:'2px 5px', borderRadius:'3px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.1em' }}>
-              CROP
-            </button>
-
-            <div className="thumb-del">
-              <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(load); }}>Delete</button>
+              <button onClick={() => setCropPhoto(p)}
+                style={{ background:'rgba(0,0,0,0.8)', color:'#fff', border:'1px solid rgba(255,255,255,0.4)', borderRadius:'4px', padding:'4px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.15em', textTransform:'uppercase' }}>
+                ✂ Crop Focus
+              </button>
             </div>
           </div>
         ))}
       </div>
-      {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
+      {photos.length===0 && !busy && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet — upload above</p></div>}
 
       {cropPhoto && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setCropPhoto(null)}>
-          <div style={{ background:'#111', border:'1px solid #333', borderRadius:'12px', padding:'2rem', minWidth:'300px' }} onClick={e => e.stopPropagation()}>
-            {(() => { const photo = photos.find(p => p._id === cropPhoto); return photo ? (
-              <>
-                <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:'1rem' }}>Set crop focus point</p>
-                <img src={photo.url} alt="" style={{ width:'100%', height:'160px', objectFit:'cover', objectPosition: photo.cropPosition||'center center', borderRadius:'6px', marginBottom:'1rem' }} />
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'1rem' }}>
-                  {CROP_POSITIONS.map(pos => (
-                    <button key={pos.value} onClick={() => saveCrop(cropPhoto, pos.value)}
-                      style={{ padding:'10px', fontFamily:'monospace', fontSize:'1rem', background: (photo.cropPosition||'center center')===pos.value ? '#fff' : '#222', color: (photo.cropPosition||'center center')===pos.value ? '#000' : '#fff', border:'1px solid #444', borderRadius:'4px', cursor:'pointer' }}>
-                      {pos.label}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={() => setCropPhoto(null)} style={{ width:'100%', padding:'0.6rem', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.2em', textTransform:'uppercase', background:'transparent', border:'1px solid #333', color:'rgba(255,255,255,0.4)', borderRadius:'6px', cursor:'pointer' }}>Close</button>
-              </>
-            ) : null; })()}
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setCropPhoto(null)}>
+          <div style={{ background:'#111', border:'1px solid #333', borderRadius:'12px', padding:'1.5rem', width:'320px' }} onClick={e => e.stopPropagation()}>
+            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.25em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:'1rem', textAlign:'center' }}>Set crop focus point</p>
+            <img src={cropPhoto.url} alt="" style={{ width:'100%', height:'180px', objectFit:'cover', objectPosition: cropPhoto.cropPosition||'center center', borderRadius:'6px', marginBottom:'1rem' }} />
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'1rem' }}>
+              {CROPS.map(c => (
+                <button key={c.v} onClick={() => saveCrop(cropPhoto._id, c.v)}
+                  style={{ padding:'12px', fontSize:'1.1rem', background: (cropPhoto.cropPosition||'center center')===c.v ? '#fff' : '#1a1a1a', color: (cropPhoto.cropPosition||'center center')===c.v ? '#000' : '#fff', border:'1px solid #333', borderRadius:'6px', cursor:'pointer' }}>
+                  {c.l}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setCropPhoto(null)} style={{ width:'100%', padding:'0.6rem', background:'transparent', border:'1px solid #333', color:'rgba(255,255,255,0.4)', borderRadius:'6px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Close</button>
           </div>
         </div>
       )}
     </>
   );
 }
-
 
 function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
   const toast = useToast();
