@@ -395,7 +395,7 @@ function PortfolioTab() {
   ];
 
   const load = () => Promise.all([
-    api.get('/photos').then(r => setPhotos(r.data)),
+    api.get('/photos?nofolder=true').then(r => setPhotos(r.data)),
     api.get('/photos?featured=true').then(r => setFeatured(r.data)),
   ]).catch(() => {});
   useEffect(() => { load(); }, []);
