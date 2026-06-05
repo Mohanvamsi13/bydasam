@@ -466,18 +466,7 @@ function PortfolioTab() {
               style={{ position:'absolute', bottom:28, right:4, background:'rgba(0,0,0,0.8)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', fontSize:'0.55rem', padding:'2px 5px', borderRadius:'3px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.1em' }}>
               CROP
             </button>
-            {cropPhoto===p._id && (
-              <div style={{ position:'absolute', bottom:50, right:4, zIndex:20, background:'rgba(0,0,0,0.9)', padding:'4px', borderRadius:'4px', border:'1px solid #333' }} onClick={e => e.stopPropagation()}>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2px' }}>
-                  {CROP_POSITIONS.map(pos => (
-                    <button key={pos.value} onClick={() => saveCrop(p._id, pos.value)}
-                      style={{ padding:'5px', fontFamily:'monospace', fontSize:'0.75rem', background: (p.cropPosition||'center center')===pos.value ? '#fff' : 'rgba(255,255,255,0.1)', color: (p.cropPosition||'center center')===pos.value ? '#000' : '#fff', border:'none', borderRadius:'2px', cursor:'pointer' }}>
-                      {pos.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+
             <div className="thumb-del">
               <button className="a-btn a-btn-red a-btn-sm" style={{ fontSize:'0.55rem' }} onClick={() => { if(confirm('Delete?')) api.delete('/photos/'+p._id).then(load); }}>Delete</button>
             </div>
@@ -485,6 +474,28 @@ function PortfolioTab() {
         ))}
       </div>
       {photos.length===0 && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet</p></div>}
+
+      {cropPhoto && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setCropPhoto(null)}>
+          <div style={{ background:'#111', border:'1px solid #333', borderRadius:'12px', padding:'2rem', minWidth:'300px' }} onClick={e => e.stopPropagation()}>
+            {(() => { const photo = photos.find(p => p._id === cropPhoto); return photo ? (
+              <>
+                <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:'1rem' }}>Set crop focus point</p>
+                <img src={photo.url} alt="" style={{ width:'100%', height:'160px', objectFit:'cover', objectPosition: photo.cropPosition||'center center', borderRadius:'6px', marginBottom:'1rem' }} />
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'1rem' }}>
+                  {CROP_POSITIONS.map(pos => (
+                    <button key={pos.value} onClick={() => saveCrop(cropPhoto, pos.value)}
+                      style={{ padding:'10px', fontFamily:'monospace', fontSize:'1rem', background: (photo.cropPosition||'center center')===pos.value ? '#fff' : '#222', color: (photo.cropPosition||'center center')===pos.value ? '#000' : '#fff', border:'1px solid #444', borderRadius:'4px', cursor:'pointer' }}>
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setCropPhoto(null)} style={{ width:'100%', padding:'0.6rem', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.2em', textTransform:'uppercase', background:'transparent', border:'1px solid #333', color:'rgba(255,255,255,0.4)', borderRadius:'6px', cursor:'pointer' }}>Close</button>
+              </>
+            ) : null; })()}
+          </div>
+        </div>
+      )}
     </>
   );
 }
