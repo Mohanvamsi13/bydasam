@@ -411,7 +411,7 @@ function PortfolioTab() {
   };
 
   const toggle = async (id, isFeatured) => {
-    if (!isFeatured && featured.length>=20) return toast('Maximum 20 portfolio photos!');
+    if (!isFeatured && featured.length>=50) return toast('Maximum 50 portfolio photos!');
     try { await api.patch('/photos/'+id, { featured:!isFeatured }); load(); }
     catch { toast('Error'); }
   };
