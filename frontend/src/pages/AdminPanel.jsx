@@ -235,7 +235,7 @@ function CarouselTab() {
 
   const upload = async files => {
     if (!files.length) return;
-    if (photos.length + files.length > 20) return toast('Maximum 20 photos!');
+    if (photos.length + files.length > 30) return toast('Maximum 30 photos!');
     setBusy(true);
     try {
       for (let i = 0; i < files.length; i++) {
@@ -279,7 +279,7 @@ function CarouselTab() {
       <SectionHeader title="Carousel" sub={`Sliding strip on homepage — ${photos.length}/20 photos`} />
       <div style={{ background:'#111', border:'1px solid #1a1a1a', borderRadius:'10px', padding:'1rem 1.5rem', marginBottom:'1.5rem' }}>
         <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)' }}>
-          {photos.length} of 20 · Select photos to delete multiple at once
+          {photos.length} of 30 · Select photos to delete multiple at once
         </p>
       </div>
       <UploadZone onFiles={upload} busy={busy} status={status} hint="Auto compressed · Up to 20 photos total" />

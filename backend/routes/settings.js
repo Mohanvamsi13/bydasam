@@ -89,7 +89,7 @@ router.get('/carousel', async (req,res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-router.post('/carousel', protect, upload.array('photos', 20), async (req,res) => {
+router.post('/carousel', protect, upload.array('photos', 30), async (req,res) => {
   try {
     const existing = await Settings.findOne({ key:'carouselPhotos' });
     const current = existing ? existing.value : [];
@@ -100,7 +100,7 @@ router.post('/carousel', protect, upload.array('photos', 20), async (req,res) =>
         return { url: result.secure_url, publicId: result.public_id, order: current.length + i };
       })
     );
-    const updated = [...current, ...newPhotos].slice(0, 20);
+    const updated = [...current, ...newPhotos].slice(0, 30);
     await Settings.findOneAndUpdate({key:'carouselPhotos'},{key:'carouselPhotos',value:updated},{upsert:true,new:true});
     res.json(updated);
   } catch(e){ res.status(500).json({error:e.message}); }
