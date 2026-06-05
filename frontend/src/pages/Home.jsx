@@ -72,32 +72,19 @@ function Carousel() {
           border-radius: 4px;
           overflow: hidden;
           cursor: pointer;
-          position: relative;
           transition: width 0.4s ease, height 0.4s ease;
         }
-        .c-frame-bg {
-          position: absolute;
-          inset: 0;
-          background-size: cover;
-          background-position: center;
-          filter: blur(8px);
-          transform: scale(1.1);
-          opacity: 0.85;
-        }
-        .c-frame-img {
-          position: absolute;
-          inset: 0;
+        .c-frame img {
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: cover;
+          object-position: center center;
           display: block;
-          z-index: 1;
         }
         .c-frame.normal { width: ${FRAME_W}px; height: ${FRAME_H}px; }
         .c-frame.shrunk { width: ${Math.round(FRAME_W*0.8)}px; height: ${Math.round(FRAME_H*0.8)}px; opacity: 0.6; }
-        .c-frame.expanded { width: ${Math.round(FRAME_W*1.5)}px; height: ${Math.round(FRAME_H*1.8)}px; z-index: 10; }
+        .c-frame.expanded { width: ${Math.round(FRAME_W*1.5)}px; height: ${Math.round(FRAME_H*1.8)}px; z-index: 10; position: relative; }
       `}</style>
-
       <div style={{ overflow:"hidden", background:"#000", borderTop:"1px solid #111", borderBottom:"1px solid #111", padding:"16px 0" }}>
         <div className="c-track" onMouseLeave={() => setHoveredIdx(null)}>
           {doubled.map((p, i) => (
@@ -106,8 +93,7 @@ function Carousel() {
               className={`c-frame ${hoveredIdx === null ? "normal" : i % photos.length === hoveredIdx % photos.length ? "expanded" : "shrunk"}`}
               onMouseEnter={() => setHoveredIdx(i)}
             >
-              <div className="c-frame-bg" style={{ backgroundImage:`url(${p.url})` }} />
-              <img src={p.url} alt="" loading="lazy" className="c-frame-img" />
+              <img src={p.url} alt="" loading="lazy" />
             </div>
           ))}
         </div>
