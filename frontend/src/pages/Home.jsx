@@ -241,7 +241,7 @@ function Collections() {
   useEffect(() => { api.get('/categories/flat').then(r => setFolders(r.data)).catch(() => {}); }, []);
   const currentFolder = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1] : null;
   const getChildren = parentId => {
-    if (!parentId) return folders.filter(f => !f.parent);
+    if (!parentId) return folders.filter(f => !f.parent && f.name.toLowerCase() !== 'weddings');
     return folders.filter(f => String(f.parent?._id || f.parent) === String(parentId));
   };
   const openFolder = folder => {

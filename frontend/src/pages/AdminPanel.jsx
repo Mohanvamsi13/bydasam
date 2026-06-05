@@ -484,9 +484,13 @@ function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
   useEffect(() => { loadFolders(); }, []);
   useEffect(() => { loadPhotos(currentFolder?._id); }, [currentFolder]);
 
-  const rootFolder = allFolders.find(f => !f.parent && f.name.toLowerCase() === rootFolderName.toLowerCase());
+  const isCollections = rootFolderName === 'Collections';
+  const rootFolder = isCollections ? null : allFolders.find(f => !f.parent && f.name.toLowerCase() === rootFolderName.toLowerCase());
   const getChildren = parentId => {
-    if (!parentId) return rootFolder ? allFolders.filter(f => String(f.parent?._id||f.parent) === String(rootFolder._id)) : [];
+    if (!parentId) {
+      if (isCollections) return allFolders.filter(f => !f.parent && f.name.toLowerCase() !== 'weddings');
+      return rootFolder ? allFolders.filter(f => String(f.parent?._id||f.parent) === String(rootFolder._id)) : [];
+    }
     return allFolders.filter(f => String(f.parent?._id||f.parent) === String(parentId));
   };
 
@@ -499,16 +503,9 @@ function FolderManager({ rootFolderName, sectionTitle, sectionSub }) {
 
   const create = async () => {
     if (!newName.trim()) return toast('Enter a name');
-    const parentId = currentFolder ? currentFolder._id : rootFolder?._id;
-    if (!parentId && !rootFolder) {
-      try {
-        const root = await api.post('/categories', { name: rootFolderName, parent: null });
-        await api.post('/categories', { name: newName.trim(), parent: root.data._id });
-      } catch { toast('Error'); return; }
-    } else {
-      try { await api.post('/categories', { name: newName.trim(), parent: parentId||null }); }
-      catch(e) { toast(e.response?.data?.error||'Error'); return; }
-    }
+    const parentId = currentFolder ? currentFolder._id : (rootFolder?._id || null);
+    try { await api.post('/categories', { name: newName.trim(), parent: parentId }); }
+    catch(e) { toast(e.response?.data?.error||'Error'); return; }
     toast('Created!'); setNewName(''); setShowNew(false); loadFolders();
   };
 
@@ -657,7 +654,7 @@ function WeddingsTab() {
 }
 
 function CollectionsTab() {
-  return <FolderManager rootFolderName="Collections" sectionTitle="Collections" sectionSub="Create collections and upload photos — shown on the website with cover photos" />;
+  return <FolderManager rootFolderName="Collections" sectionTitle="Collections" sectionSub="Create collections and upload photos — shown on the website with cover photos" isCollections={true} />;
 }
 
 function SocialTab() {
