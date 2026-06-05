@@ -50,7 +50,7 @@ function Carousel() {
     );
   }
 
-  const FRAME_W = 200, GAP = 6;
+  const GAP = 8;
   const doubled = [...photos, ...photos];
 
   return (
@@ -58,40 +58,35 @@ function Carousel() {
       <style>{`
         @keyframes carouselScroll {
           0%{transform:translateX(0)}
-          100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)}
+          100%{transform:translateX(-50%)}
         }
         .c-track {
           display: flex;
           gap: ${GAP}px;
-          width: ${doubled.length*(FRAME_W+GAP)}px;
-          animation: carouselScroll ${photos.length*5}s linear infinite;
+          width: max-content;
+          animation: carouselScroll ${photos.length * 4}s linear infinite;
           align-items: center;
         }
-        .c-track.paused { animation-play-state: paused; }
         .c-frame {
           flex-shrink: 0;
           border-radius: 4px;
           overflow: hidden;
           border: 1px solid rgba(255,255,255,0.07);
           cursor: pointer;
-          transition: width 0.4s ease, height 0.4s ease, border-color 0.2s;
+          transition: height 0.4s ease, border-color 0.2s;
         }
         .c-frame img {
           height: 100%;
           width: auto;
           display: block;
-          transition: height 0.4s;
         }
-        .c-frame.normal { width: ${FRAME_W}px; height: 160px; }
-        .c-frame.shrunk { width: ${Math.round(FRAME_W*0.75)}px; height: 160px; opacity: 0.5; }
-        .c-frame.expanded { width: ${Math.round(FRAME_W*1.4)}px; height: 320px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
+        .c-frame.normal { height: 220px; }
+        .c-frame.shrunk { height: 160px; opacity: 0.5; }
+        .c-frame.expanded { height: 320px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
       `}</style>
 
-      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'20px 0' }}>
-        <div
-          className="c-track"
-          onMouseLeave={() => setHoveredIdx(null)}
-        >
+      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'16px 0' }}>
+        <div className="c-track" onMouseLeave={() => setHoveredIdx(null)}>
           {doubled.map((p, i) => (
             <div
               key={i}
