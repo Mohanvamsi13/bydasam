@@ -40,7 +40,7 @@ function Carousel() {
 
   if (photos.length === 0) {
     return (
-      <div className="marquee-strip" style={{ marginTop:'24px', marginBottom:'24px' }}>
+      <div className="marquee-strip" style={{ marginTop:"24px", marginBottom:"24px" }}>
         <div className="marquee-inner">
           {[...items,...items].map((item, i) => (
             <span key={i} className="marquee-item">{item}{i < items.length*2-1 && <span className="marquee-dot" />}</span>
@@ -50,21 +50,21 @@ function Carousel() {
     );
   }
 
-  const GAP = 8;
+  const FRAME_W = 220, FRAME_H = 160, GAP = 6;
   const doubled = [...photos, ...photos];
 
   return (
-    <div style={{ marginTop:'24px', marginBottom:'24px' }}>
+    <div style={{ marginTop:"24px", marginBottom:"24px" }}>
       <style>{`
         @keyframes carouselScroll {
           0%{transform:translateX(0)}
-          100%{transform:translateX(-50%)}
+          100%{transform:translateX(-${photos.length*(FRAME_W+GAP)}px)}
         }
         .c-track {
           display: flex;
           gap: ${GAP}px;
-          width: max-content;
-          animation: carouselScroll ${photos.length * 4}s linear infinite;
+          width: ${doubled.length*(FRAME_W+GAP)}px;
+          animation: carouselScroll ${photos.length*4}s linear infinite;
           align-items: center;
         }
         .c-frame {
@@ -73,27 +73,25 @@ function Carousel() {
           overflow: hidden;
           border: 1px solid rgba(255,255,255,0.07);
           cursor: pointer;
-          transition: height 0.4s ease, border-color 0.2s;
+          transition: width 0.4s ease, height 0.4s ease, border-color 0.2s;
         }
         .c-frame img {
+          width: 100%;
           height: 100%;
-          width: auto;
+          object-fit: cover;
+          object-position: center center;
           display: block;
         }
-        .c-frame.normal { height: 220px; }
-        .c-frame.shrunk { height: 160px; opacity: 0.5; }
-        .c-frame.expanded { height: 320px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
+        .c-frame.normal { width: ${FRAME_W}px; height: ${FRAME_H}px; }
+        .c-frame.shrunk { width: ${Math.round(FRAME_W*0.8)}px; height: ${Math.round(FRAME_H*0.8)}px; opacity: 0.5; }
+        .c-frame.expanded { width: ${Math.round(FRAME_W*1.5)}px; height: ${Math.round(FRAME_H*1.8)}px; border-color: rgba(255,255,255,0.3); z-index: 10; position: relative; }
       `}</style>
-
-      <div style={{ overflow:'hidden', background:'#000', borderTop:'1px solid #111', borderBottom:'1px solid #111', padding:'16px 0' }}>
+      <div style={{ overflow:"hidden", background:"#000", borderTop:"1px solid #111", borderBottom:"1px solid #111", padding:"16px 0" }}>
         <div className="c-track" onMouseLeave={() => setHoveredIdx(null)}>
           {doubled.map((p, i) => (
             <div
               key={i}
-              className={`c-frame ${
-                hoveredIdx === null ? 'normal' :
-                i % photos.length === hoveredIdx % photos.length ? 'expanded' : 'shrunk'
-              }`}
+              className={`c-frame ${hoveredIdx === null ? "normal" : i % photos.length === hoveredIdx % photos.length ? "expanded" : "shrunk"}`}
               onMouseEnter={() => setHoveredIdx(i)}
             >
               <img src={p.url} alt="" loading="lazy" />
