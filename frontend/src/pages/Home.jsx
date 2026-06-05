@@ -183,21 +183,15 @@ function Portfolio() {
           <p>No photos yet — upload via admin panel</p>
         </div>
       ) : (
-        <div style={{ padding:'0 2px' }}>
-          <style>{`
-            .port-grid { columns: 4; column-gap: 2px; }
-            .port-item { break-inside: avoid; margin-bottom: 2px; overflow: hidden; cursor: pointer; display: block; position: relative; }
-            .port-item img { width: 100%; height: auto; display: block; transition: transform 0.5s; }
-            .port-item:hover img { transform: scale(1.03); }
-            @media (max-width: 768px) { .port-grid { columns: 2; } }
-          `}</style>
-          <div className="port-grid">
-            {photos.map((p, i) => (
-              <div key={p._id} className="port-item" onClick={() => openLb(i)}>
-                <img src={p.url} alt={p.title||'Photo'} loading="lazy" />
-              </div>
-            ))}
-          </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'2px', padding:'2px' }}>
+          {photos.map((p, i) => (
+            <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', overflow:'hidden', aspectRatio:'1/1', cursor:'pointer', background:'#111' }}>
+              <img src={p.url} alt={p.title||'Photo'} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', transition:'transform 0.5s' }}
+                onMouseEnter={e => e.target.style.transform='scale(1.05)'}
+                onMouseLeave={e => e.target.style.transform='scale(1)'}
+              />
+            </div>
+          ))}
         </div>
       )}
       <div className={`lightbox${lb.open?' open':''}`} onClick={closeLb}>
