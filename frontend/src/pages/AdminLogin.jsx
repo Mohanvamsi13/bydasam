@@ -31,51 +31,42 @@ export default function AdminLogin() {
     } finally { setBusy(false); }
   };
 
-  const EyeIcon = ({ open }) => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      {open ? (
-        <>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </>
-      ) : (
-        <>
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-          <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </>
-      )}
-    </svg>
-  );
-
   return (
     <div style={{ minHeight:'100vh', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', padding:'2rem' }}>
       <div style={{ width:'100%', maxWidth:'360px' }}>
         <div style={{ textAlign:'center', marginBottom:'3rem' }}>
           <h1 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'2.5rem', letterSpacing:'0.1em', color:'#fff' }}>BYDASAM</h1>
-          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.35em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)', marginTop:'0.3rem' }}>Admin Panel</p>
+          <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.35em', textTransform:'uppercase', color:'rgba(255,255,255,0.3)', marginTop:'0.3rem' }}>Admin Panel</p>
         </div>
 
         <form onSubmit={submit}>
           {!mfaStep ? (
             <>
-              <div style={{ marginBottom:'1.5rem' }}>
-                <label className="a-label">Email</label>
-                <input type="email" className="a-input" value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} />
+              <div style={{ marginBottom:'1.2rem' }}>
+                <label style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.25em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:'0.5rem' }}>Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm(f=>({...f,email:e.target.value}))}
+                  placeholder="madhusaipavan02@gmail.com"
+                  style={{ width:'100%', background:'#111', border:'1px solid #2a2a2a', color:'#fff', fontFamily:"'Barlow',sans-serif", fontSize:'1rem', fontWeight:300, padding:'0.8rem 1rem', outline:'none', borderRadius:'6px', boxSizing:'border-box' }}
+                  autoComplete="email"
+                />
               </div>
               <div style={{ marginBottom:'2rem' }}>
-                <label className="a-label">Password</label>
+                <label style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.25em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:'0.5rem' }}>Password</label>
                 <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
                   <input
                     type={showPass ? 'text' : 'password'}
-                    className="a-input"
                     value={form.password}
                     onChange={e => setForm(f=>({...f,password:e.target.value}))}
-                    style={{ paddingRight:'2.5rem', width:'100%', marginBottom:0 }}
+                    placeholder="••••••••"
+                    style={{ width:'100%', background:'#111', border:'1px solid #2a2a2a', color:'#fff', fontFamily:"'Barlow',sans-serif", fontSize:'1rem', fontWeight:300, padding:'0.8rem 1rem', paddingRight:'3rem', outline:'none', borderRadius:'6px', boxSizing:'border-box' }}
+                    autoComplete="current-password"
                   />
                   <button type="button" onClick={() => setShowPass(s => !s)}
-                    style={{ position:'absolute', right:'0.5rem', background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', padding:'0.2rem', display:'flex', alignItems:'center' }}>
-                    <EyeIcon open={showPass} />
+                    style={{ position:'absolute', right:'0.8rem', background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', padding:'0.2rem', fontSize:'0.75rem', fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:'0.1em' }}>
+                    {showPass ? 'Hide' : 'Show'}
                   </button>
                 </div>
               </div>
@@ -87,23 +78,25 @@ export default function AdminLogin() {
               </p>
               <input
                 type="text"
-                className="a-input"
                 value={mfaCode}
                 onChange={e => setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))}
                 maxLength={6}
-                style={{ textAlign:'center', fontSize:'1.5rem', letterSpacing:'0.5em' }}
+                placeholder="000000"
+                style={{ width:'100%', background:'#111', border:'1px solid #2a2a2a', color:'#fff', fontFamily:"'Barlow',sans-serif", fontSize:'1.5rem', fontWeight:300, padding:'0.8rem 1rem', outline:'none', borderRadius:'6px', textAlign:'center', letterSpacing:'0.5em', boxSizing:'border-box' }}
                 autoFocus
               />
             </div>
           )}
 
-          <button type="submit" className="a-btn" style={{ width:'100%', padding:'1rem', fontSize:'0.8rem' }} disabled={busy}>
+          <button type="submit"
+            style={{ width:'100%', padding:'1rem', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.85rem', letterSpacing:'0.25em', textTransform:'uppercase', background:'#fff', color:'#000', border:'none', borderRadius:'6px', cursor:'pointer', opacity: busy ? 0.6 : 1 }}
+            disabled={busy}>
             {busy ? 'Checking...' : mfaStep ? 'Verify Code' : 'Sign In'}
           </button>
 
           {mfaStep && (
             <button type="button" onClick={() => { setMfaStep(false); setMfaCode(''); }}
-              style={{ width:'100%', marginTop:'0.8rem', background:'transparent', border:'none', color:'rgba(255,255,255,0.2)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', cursor:'pointer' }}>
+              style={{ width:'100%', marginTop:'0.8rem', background:'transparent', border:'none', color:'rgba(255,255,255,0.2)', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.2em', textTransform:'uppercase', cursor:'pointer', padding:'0.5rem' }}>
               Back to login
             </button>
           )}
