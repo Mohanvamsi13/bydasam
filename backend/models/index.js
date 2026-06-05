@@ -27,8 +27,9 @@ const photoSchema = new mongoose.Schema({
   publicId: { type:String, required:true },
   folder:   { type:mongoose.Schema.Types.ObjectId, ref:'Folder', default:null },
   type:     { type:String, enum:['portfolio','carousel'], default:'portfolio' },
-  featured: { type:Boolean, default:false },
-  order:    { type:Number, default:0 },
+  featured:      { type:Boolean, default:false },
+  cropPosition: { type:String, default:'center center' },
+  order:        { type:Number, default:0 },
 }, { timestamps:true });
 
 const bookingSchema = new mongoose.Schema({

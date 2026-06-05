@@ -186,7 +186,7 @@ function Portfolio() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'2px', padding:'2px' }}>
           {photos.map((p, i) => (
             <div key={p._id} onClick={() => openLb(i)} style={{ position:'relative', overflow:'hidden', aspectRatio:'1/1', cursor:'pointer', background:'#111' }}>
-              <img src={p.url} alt={p.title||'Photo'} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', transition:'transform 0.5s' }}
+              <img src={p.url} alt={p.title||'Photo'} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition: p.cropPosition||'center center', display:'block', transition:'transform 0.5s' }}
                 onMouseEnter={e => e.target.style.transform='scale(1.05)'}
                 onMouseLeave={e => e.target.style.transform='scale(1)'}
               />
