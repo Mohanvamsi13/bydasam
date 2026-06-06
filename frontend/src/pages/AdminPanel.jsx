@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -379,6 +379,56 @@ function AboutTab() {
   );
 }
 
+function DragCrop({ photo, onSave, onClose }) {
+  const [pos, setPos] = useState(() => {
+    const p = photo.cropPosition || 'center center';
+    const [x, y] = p.split(' ');
+    const xMap = { left: 0, center: 50, right: 100 };
+    const yMap = { top: 0, center: 50, bottom: 100 };
+    return { x: xMap[x] ?? 50, y: yMap[y] ?? 50 };
+  });
+  const [dragging, setDragging] = useState(false);
+  const containerRef = React.useRef(null);
+
+  const getPos = (e) => {
+    const rect = containerRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+    return { x, y };
+  };
+
+  const onMouseDown = (e) => { e.preventDefault(); setDragging(true); setPos(getPos(e)); };
+  const onMouseMove = (e) => { if (!dragging) return; setPos(getPos(e)); };
+  const onMouseUp = () => setDragging(false);
+
+  const handleSave = () => {
+    onSave(photo._id, `${pos.x}% ${pos.y}%`);
+  };
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.92)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}
+      onMouseMove={onMouseMove} onMouseUp={onMouseUp} onTouchMove={e => { if(dragging) setPos(getPos(e)); }} onTouchEnd={onMouseUp}>
+      <div style={{ background:'#111', border:'1px solid #333', borderRadius:'12px', padding:'1.5rem', width:'360px' }} onClick={e => e.stopPropagation()}>
+        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.25em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:'0.5rem', textAlign:'center' }}>Drag to set crop focus</p>
+        <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.65rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.25)', marginBottom:'1rem', textAlign:'center' }}>Click or drag on the photo to position</p>
+        <div ref={containerRef} style={{ position:'relative', width:'100%', height:'260px', borderRadius:'8px', overflow:'hidden', cursor:'crosshair', userSelect:'none' }}
+          onMouseDown={onMouseDown} onTouchStart={e => { setDragging(true); setPos(getPos(e)); }}>
+          <img src={photo.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${pos.x}% ${pos.y}%`, display:'block', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', left:`${pos.x}%`, top:`${pos.y}%`, transform:'translate(-50%,-50%)', width:'24px', height:'24px', borderRadius:'50%', border:'2px solid #fff', boxShadow:'0 0 0 1px rgba(0,0,0,0.5)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', left:`${pos.x}%`, top:0, bottom:0, width:'1px', background:'rgba(255,255,255,0.3)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:`${pos.y}%`, left:0, right:0, height:'1px', background:'rgba(255,255,255,0.3)', pointerEvents:'none' }} />
+        </div>
+        <div style={{ display:'flex', gap:'8px', marginTop:'1rem' }}>
+          <button onClick={handleSave} style={{ flex:1, padding:'0.7rem', background:'#fff', color:'#000', border:'none', borderRadius:'6px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Save</button>
+          <button onClick={onClose} style={{ flex:1, padding:'0.7rem', background:'transparent', border:'1px solid #333', color:'rgba(255,255,255,0.4)', borderRadius:'6px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioTab() {
   const toast = useToast();
   const [photos, setPhotos] = useState([]);
@@ -462,21 +512,7 @@ function PortfolioTab() {
       {photos.length===0 && !busy && <div style={{ textAlign:'center', padding:'3rem', color:'rgba(255,255,255,0.15)' }}><p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.8rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>No photos yet — upload above</p></div>}
 
       {cropPhoto && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setCropPhoto(null)}>
-          <div style={{ background:'#111', border:'1px solid #333', borderRadius:'12px', padding:'1.5rem', width:'320px' }} onClick={e => e.stopPropagation()}>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.75rem', letterSpacing:'0.25em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:'1rem', textAlign:'center' }}>Set crop focus point</p>
-            <img src={cropPhoto.url} alt="" style={{ width:'100%', height:'180px', objectFit:'cover', objectPosition: cropPhoto.cropPosition||'center center', borderRadius:'6px', marginBottom:'1rem' }} />
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'1rem' }}>
-              {CROPS.map(c => (
-                <button key={c.v} onClick={() => saveCrop(cropPhoto._id, c.v)}
-                  style={{ padding:'12px', fontSize:'1.1rem', background: (cropPhoto.cropPosition||'center center')===c.v ? '#fff' : '#1a1a1a', color: (cropPhoto.cropPosition||'center center')===c.v ? '#000' : '#fff', border:'1px solid #333', borderRadius:'6px', cursor:'pointer' }}>
-                  {c.l}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setCropPhoto(null)} style={{ width:'100%', padding:'0.6rem', background:'transparent', border:'1px solid #333', color:'rgba(255,255,255,0.4)', borderRadius:'6px', cursor:'pointer', fontFamily:"'Barlow Condensed',sans-serif", fontSize:'0.7rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>Close</button>
-          </div>
-        </div>
+        <DragCrop photo={cropPhoto} onSave={saveCrop} onClose={() => setCropPhoto(null)} />
       )}
     </>
   );
