@@ -65,7 +65,7 @@ function Carousel() {
           gap: ${GAP}px;
           width: max-content;
           animation: carouselScroll ${photos.length*5}s linear infinite;
-          align-items: stretch;
+          align-items: center;
         }
         .c-frame {
           flex-shrink: 0;
@@ -78,7 +78,8 @@ function Carousel() {
           display: block;
           height: 100%;
           width: auto;
-          object-fit: fill;
+          object-fit: cover;
+          object-position: center center;
         }
         .c-frame.normal { height: ${FRAME_H}px; opacity: 1; }
         .c-frame.shrunk { height: ${Math.round(FRAME_H*0.75)}px; opacity: 0.45; }
